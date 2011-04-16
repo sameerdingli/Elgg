@@ -109,7 +109,7 @@ class ElggFileCache extends ElggCache {
 	public function save($key, $data) {
 		$f = $this->createFile($this->sanitizeFilename($key), "wb");
 		if ($f) {
-			$result = fwrite($f, $data);
+			$result = fwrite($f, serialize($data));
 			fclose($f);
 
 			return $result;
@@ -134,7 +134,7 @@ class ElggFileCache extends ElggCache {
 				$limit = -1;
 			}
 
-			$data = stream_get_contents($f, $limit, $offset);
+			$data = unserialize(stream_get_contents($f, $limit, $offset));
 
 			fclose($f);
 

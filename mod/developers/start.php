@@ -4,7 +4,9 @@
  */
 
 // we want to run this as soon as possible - other plugins should not need to do this
+$start = microtime(true);
 developers_process_settings();
+echo microtime(true) - $start;
 
 elgg_register_event_handler('init', 'system', 'developers_init');
 
@@ -12,7 +14,8 @@ function developers_init() {
 	elgg_register_event_handler('pagesetup', 'system', 'developers_setup_menu');
 
 	elgg_extend_view('css/admin', 'developers/css');
-
+	elgg_extend_view('page/elements/foot', 'developers/foot');
+	
 	elgg_register_page_handler('theme_preview', 'developers_theme_preview_controller');
 
 	$action_base = elgg_get_plugins_path() . 'developers/actions/developers';

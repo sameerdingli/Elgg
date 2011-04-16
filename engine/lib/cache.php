@@ -70,10 +70,19 @@ function elgg_filepath_cache_save($type, $data) {
  */
 function elgg_filepath_cache_load($type) {
 	global $CONFIG;
+	static $load_cache;
 
 	if ($CONFIG->viewpath_cache_enabled) {
+		if (!isset($load_cache)) {
+			$load_cache = array();
+		}
+		
+		if (isset($load_cache[$type])) {
+			return $load_cache[$type];
+		}
+		
 		$cache = elgg_get_filepath_cache();
-		$cached_data = $cache->load($type);
+		$cached_data = $load_cache[$type] = $cache->load($type);
 
 		if ($cached_data) {
 			return $cached_data;

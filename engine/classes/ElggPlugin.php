@@ -730,6 +730,8 @@ class ElggPlugin extends ElggObject {
 	 * @throws PluginException
 	 */
 	public function start($flags) {
+		$start = microtime(true);
+		
 		if (!$this->canActivate()) {
 			return false;
 		}
@@ -754,6 +756,9 @@ class ElggPlugin extends ElggObject {
 			$this->registerClasses();
 		}
 
+		$time = (int)(1000*(microtime(true) - $start));
+		echo "$this->title: {$time}ms<br/>";
+		
 		return true;
 	}
 

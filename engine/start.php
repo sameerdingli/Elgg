@@ -16,14 +16,6 @@
  * @subpackage Core
  */
 
-/*
- * No settings means a fresh install
- */
-if (!file_exists(dirname(__FILE__) . '/settings.php')) {
-	header("Location: install.php");
-	exit;
-}
-
 /**
  * The time with microseconds when the Elgg engine was started.
  *
@@ -31,6 +23,14 @@ if (!file_exists(dirname(__FILE__) . '/settings.php')) {
  */
 global $START_MICROTIME;
 $START_MICROTIME = microtime(true);
+
+/*
+ * No settings means a fresh install
+ */
+if (!file_exists(dirname(__FILE__) . '/settings.php')) {
+	header("Location: install.php");
+	exit;
+}
 
 /**
  * Configuration values.
@@ -73,6 +73,10 @@ foreach ($required_files as $file) {
 	}
 }
 
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Required files: $total<br/>";
+$START_MICROTIME = microtime(true);
+
 // Register the error handler
 set_error_handler('_elgg_php_error_handler');
 set_exception_handler('_elgg_php_exception_handler');
@@ -85,6 +89,9 @@ if (!include_once(dirname(__FILE__) . "/settings.php")) {
 	throw new InstallationException($msg);
 }
 
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Settings: $total<br/>";
+$START_MICROTIME = microtime(true);
 
 // load the rest of the library files from engine/lib/
 $lib_files = array(
@@ -114,6 +121,10 @@ foreach ($lib_files as $file) {
 	}
 }
 
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Lib files: $total<br/>";
+$START_MICROTIME = microtime(true);
+
 // confirm that the installation completed successfully
 verify_installation();
 
@@ -125,16 +136,37 @@ $viewtype = get_input('view', 'default');
 $lastcached = datalist_get("simplecache_lastcached_$viewtype");
 $CONFIG->lastcache = $lastcached;
 
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Start: $total<br/>";
+$START_MICROTIME = microtime(true);
+
 // Trigger boot events for core. Plugins can't hook
 // into this because they haven't been loaded yet.
 elgg_trigger_event('boot', 'system');
 
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Boot: $total<br/>";
+$START_MICROTIME = microtime(true);
+
 // Load the plugins that are active
 elgg_load_plugins();
+
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Load plugins: $total<br/>";
+$START_MICROTIME = microtime(true);
+
 elgg_trigger_event('plugins_boot', 'system');
+
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Boot plugins: $total<br/>";
+$START_MICROTIME = microtime(true);
 
 // Trigger system init event for plugins
 elgg_trigger_event('init', 'system');
+
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Init: $total<br/>";
+$START_MICROTIME = microtime(true);
 
 // Regenerate the simple cache if expired.
 // Don't do it on upgrade because upgrade does it itself.
@@ -149,3 +181,7 @@ if (!defined('UPGRADING')) {
 
 // System loaded and ready
 elgg_trigger_event('ready', 'system');
+
+$total = (int)((microtime(true) - $START_MICROTIME)*1000);
+echo "Ready: $total<br/>";
+$START_MICROTIME = microtime(true);

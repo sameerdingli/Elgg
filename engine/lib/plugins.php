@@ -175,6 +175,10 @@ function elgg_generate_plugin_entities() {
  * @return mixed ElggPlugin or false.
  */
 function elgg_get_plugin_from_id($plugin_id) {
+	if (isset($CONFIG->plugins[$plugin_id])) {
+		return $CONFIG->plugins[$plugin_id];
+	}
+	
 	$plugin_id = sanitize_string($plugin_id);
 	$db_prefix = get_config('dbprefix');
 
@@ -274,7 +278,7 @@ function elgg_is_active_plugin($plugin_id, $site_guid = null) {
  */
 function elgg_load_plugins() {
 	global $CONFIG;
-
+	
 	$plugins_path = elgg_get_plugins_path();
 	$start_flags =	ELGG_PLUGIN_INCLUDE_START
 					| ELGG_PLUGIN_REGISTER_VIEWS
@@ -293,18 +297,33 @@ function elgg_load_plugins() {
 	// Load view caches if available
 	$cached_view_paths = elgg_filepath_cache_load('views');
 	$cached_view_types = elgg_filepath_cache_load('view_types');
-	$cached_view_info = is_string($cached_view_paths) && is_string($cached_view_types);
-
+	$cached_view_info = !empty($cached_view_paths) && !empty($cached_view_types);
 	if ($cached_view_info) {
-		$CONFIG->views = unserialize($cached_view_paths);
-		$CONFIG->view_types = unserialize($cached_view_types);
-
+		$CONFIG->views = $cached_view_paths;
+		$CONFIG->view_types = $cached_view_types;
+		
 		// don't need to register views
 		$start_flags = $start_flags & ~ELGG_PLUGIN_REGISTER_VIEWS;
 	}
-
+	
+	$cached_classes = elgg_filepath_cache_load('classes');
+	if ($cached_classes) {
+		$CONFIG->classes = $cached_classes;
+		
+		$start_flags = $start_flags & ~ELGG_PLUGIN_REGISTER_CLASSES;
+	}
+	
+	$cached_translations = elgg_filepath_cache_load('translations');
+	if ($cached_translations) {
+		$CONFIG->translations = $cached_translations;
+		
+		$start_flags = $start_flags & ~ELGG_PLUGIN_REGISTER_LANGUAGES;
+	}
+	
 	$return = true;
+	
 	$plugins = elgg_get_plugins('active');
+	
 	if ($plugins) {
 		foreach ($plugins as $plugin) {
 			// check if plugin can be started and try to start it.
@@ -331,13 +350,21 @@ function elgg_load_plugins() {
 			}
 		}
 	}
-
+	
 	// Cache results
 	if (!$cached_view_info) {
-		elgg_filepath_cache_save('views', serialize($CONFIG->views));
-		elgg_filepath_cache_save('view_types', serialize($CONFIG->view_types));
+		elgg_filepath_cache_save('views', $CONFIG->views);
+		elgg_filepath_cache_save('view_types', $CONFIG->view_types);
 	}
-
+	
+	if (!$cached_translations) {
+		elgg_filepath_cache_save('translations', $CONFIG->translations);
+	}
+	
+	if (!$cached_classes) {
+		elgg_filepath_cache_save('classes', $CONFIG->classes);
+	}
+	
 	return $return;
 }
 
@@ -390,21 +417,39 @@ function elgg_get_plugins($status = 'active', $include_bad = false, $site_guid =
 
 	if ($include_bad) {
 		$old_ia = elgg_set_ignore_access(true);
-	}
-
-	$plugins = elgg_get_entities_from_relationship($options);
-
-	if ($include_bad) {
+		
+		$plugins = elgg_get_entities_from_relationship($options);
+		
 		elgg_set_ignore_access($old_ia);
 	} else {
+		
+		$cached_plugins = elgg_filepath_cache_load("plugins-$status-$site_guid");
+		
+		if ($cached_plugins) {
+			$plugins = $cached_plugins;
+		} else {
+			$plugins = elgg_get_entities_from_relationship($options);
+		}
+	
 		// remove bad plugins
 		foreach ($plugins as $i => $plugin) {
 			if (!$plugin->isValid()) {
 				unset ($plugins[$i]);
+			} else {
+				if (!isset($CONFIG->plugins)) {
+					$CONFIG->plugins = array();
+				}
+				
+				$CONFIG->plugins[$plugin->getID()] = $plugin;
 			}
 		}
+	
+		if (!$cached_plugins) {
+			elgg_filepath_cache_save("plugins-$status-$site_guid", $plugins);
+		}
+		
 	}
-
+	
 	return $plugins;
 }
 

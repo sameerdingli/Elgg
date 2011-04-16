@@ -142,7 +142,7 @@ function elgg_echo($message_key, $args = array(), $language = "") {
  *
  * @return void
  */
-function register_translations($path, $load_all = false) {
+function register_translations($path, $load_all = true) {
 	global $CONFIG;
 
 	$path = sanitise_filepath($path);
