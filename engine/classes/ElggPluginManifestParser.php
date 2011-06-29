@@ -23,9 +23,9 @@
  */
 abstract class ElggPluginManifestParser {
 	/**
-	 * The XmlElement object
+	 * The SimpleXMLElement object
 	 *
-	 * @var XmlElement
+	 * @var SimpleXMLElement
 	 */
 	protected $manifestObject;
 
