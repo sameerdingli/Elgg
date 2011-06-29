@@ -56,7 +56,7 @@ abstract class ElggPluginManifestParser {
 	 * @param XmlElement $xml    The Manifest XML object to be parsed
 	 * @param object     $caller The object calling this parser.
 	 */
-	public function __construct(XmlElement $xml, $caller) {
+	public function __construct(SimpleXMLElement $xml, $caller) {
 		$this->manifestObject = $xml;
 		$this->caller = $caller;
 	}

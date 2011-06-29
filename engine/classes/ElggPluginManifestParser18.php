@@ -35,8 +35,8 @@ class ElggPluginManifestParser18 extends ElggPluginManifestParser {
 	 */
 	public function parse() {
 		$parsed = array();
-		foreach ($this->manifestObject->children as $element) {
-			switch ($element->name) {
+		foreach ($this->manifestObject->children() as $element) {
+			switch ($element->getName()) {
 				// single elements
 				case 'blurb':
 				case 'description':
@@ -48,12 +48,12 @@ class ElggPluginManifestParser18 extends ElggPluginManifestParser {
 				case 'license':
 				case 'admin_interface':
 				case 'activate_on_install':
-					$parsed[$element->name] = $element->content;
+					$parsed[$element->getName()] = (string)$element;
 					break;
 
 				// arrays
 				case 'category':
-					$parsed[$element->name][] = $element->content;
+					$parsed[$element->getName()][] = (string)$element;
 					break;
 
 				// 3d arrays
@@ -62,16 +62,16 @@ class ElggPluginManifestParser18 extends ElggPluginManifestParser {
 				case 'conflicts':
 				case 'requires':
 				case 'suggests':
-					if (!isset($element->children)) {
+					if (!$element->count()) {
 						return false;
 					}
 
 					$info = array();
-					foreach ($element->children as $child_element) {
-						$info[$child_element->name] = $child_element->content;
+					foreach ($element->children() as $child_element) {
+						$info[$child_element->getName()] = (string)$child_element;
 					}
 
-					$parsed[$element->name][] = $info;
+					$parsed[$element->getName()][] = $info;
 					break;
 			}
 		}

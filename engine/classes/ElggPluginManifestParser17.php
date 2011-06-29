@@ -27,15 +27,15 @@ class ElggPluginManifestParser17 extends ElggPluginManifestParser {
 	 * @return void
 	 */
 	public function parse() {
-		if (!isset($this->manifestObject->children)) {
+		if (!$this->manifestObject->count()) {
 			return false;
 		}
 
 		$elements = array();
 
-		foreach ($this->manifestObject->children as $element) {
-			$key = $element->attributes['key'];
-			$value = $element->attributes['value'];
+		foreach ($this->manifestObject->children() as $element) {
+			$key = $element['key'];
+			$value = $element['value'];
 
 			// create arrays if multiple fields are set
 			if (array_key_exists($key, $elements)) {

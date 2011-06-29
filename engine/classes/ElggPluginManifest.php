@@ -132,31 +132,27 @@ class ElggPluginManifest {
 		// see if we need to construct the xml object.
 		if ($manifest instanceof XmlElement) {
 			$manifest_obj = $manifest;
-		} else {
-			if (substr(trim($manifest), 0, 1) == '<') {
-				// this is a string
-				$raw_xml = $manifest;
-			} elseif (is_file($manifest)) {
-				// this is a file
-				$raw_xml = file_get_contents($manifest);
-			}
-
-			$manifest_obj = xml_to_object($raw_xml);
+		} elseif (substr(trim($manifest), 0, 1) == '<') {
+			$manifest_obj = simplexml_load_string($manifest);
+		} elseif (is_file($manifest)) {
+			$manifest_obj = simplexml_load_file($manifest);
 		}
 
-		if (!$manifest_obj) {
+		if (!$manifest_obj instanceof SimpleXMLElement) {
 			throw new PluginException(elgg_echo('PluginException:InvalidManifest',
 						array($this->getPluginID())));
 		}
 
 		// set manifest api version
-		if (isset($manifest_obj->attributes['xmlns'])) {
-			$namespace = $manifest_obj->attributes['xmlns'];
+		$namespaces = $manifest_obj->getDocNamespaces();
+		$namespace = $namespaces[''];
+		
+		if (isset($namespace)) {
 			$version = str_replace($this->namespace_root, '', $namespace);
 		} else {
 			$version = 1.7;
 		}
-
+		
 		$this->apiVersion = $version;
 
 		$parser_class_name = 'ElggPluginManifestParser' . str_replace('.', '', $this->apiVersion);
