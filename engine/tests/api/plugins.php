@@ -52,7 +52,7 @@ class ElggCorePluginsAPITest extends ElggCoreUnitTest {
 	}
 
 	public function testElggPluginManifestFromXMLEntity() {
-		$xml = xml_to_object($manifest_file = file_get_contents(get_config('path') . 'engine/tests/test_files/plugin_17/manifest.xml'));
+		$xml = simplexml_load_file(get_config('path') . 'engine/tests/test_files/plugin_17/manifest.xml');
 		$manifest = new ElggPluginManifest($xml);
 
 		$this->assertIsA($manifest, 'ElggPluginManifest');
