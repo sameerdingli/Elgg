@@ -33,7 +33,9 @@ class ElggPluginManifestParser17 extends ElggPluginManifestParser {
 
 		$elements = array();
 
-		foreach ($this->manifestObject->children() as $element) {
+		$children = $this->manifestObject->children();
+
+		foreach ($children as $element) {
 			$key = $element['key'];
 			$value = $element['value'];
 
