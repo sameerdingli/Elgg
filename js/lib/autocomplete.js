@@ -7,6 +7,7 @@ elgg.autocomplete.init = function() {
 	$('.elgg-input-autocomplete').autocomplete({
 		source: elgg.autocomplete.url, //gets set by input/autocomplete
 		minLength: 1,
+		width: 'auto',
 		select: function(event, ui) {
 			var item = ui.item;
 			$(this).val(item.name);
@@ -18,20 +19,17 @@ elgg.autocomplete.init = function() {
 	
 	//@todo This seems convoluted
 	.data("autocomplete")._renderItem = function(ul, item) {
-		switch (item.type) {
-			case 'user':
-			case 'group':
-				r = item.icon + item.name + ' - ' + item.desc;
-				break;
-
-			default:
-				r = item.name + ' - ' + item.desc;
-				break;
-		}
+		console.log(item);
 		
-		return $("<li/>")
+		var img = item.icon ? '<img src="' + item.icon + '" />' : '';
+		var r = '<div class="elgg-image-block">';
+		r += '<div class="elgg-image">' + img + '</div>';
+		r += '<div class="elgg-body">' + item.name + ' - ' + item.desc + '</div>';
+		r += '</div>';
+		
+		return $('<li></li>')
 			.data("item.autocomplete", item)
-			.append(r)
+			.html(r)
 			.appendTo(ul);
 	};
 };
