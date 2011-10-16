@@ -1,6 +1,8 @@
 /**
  * Create a new ElggEntity
  * 
+ * @param {Object} object The properties with which to initialize the entity
+ * 
  * @class Represents an ElggEntity
  * @property {number} guid
  * @property {string} type
@@ -15,6 +17,6 @@
  * @property {string} enabled
  * 
  */
-elgg.ElggEntity = function(o) {
-	$.extend(this, o);
+elgg.models.Entity = function(object) {
+	elgg.extend(this, object);
 };

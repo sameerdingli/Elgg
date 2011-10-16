@@ -3,6 +3,11 @@
  */
 elgg.provide('elgg.security');
 
+elgg.require('elgg.ajax');
+elgg.require('elgg.config');
+elgg.require('elgg.i18n');
+elgg.require('elgg.ui.SystemMessage');
+
 elgg.security.token = {};
 
 elgg.security.tokenRefreshFailed = false;
@@ -35,7 +40,7 @@ elgg.security.setToken = function(json) {
  * @todo handle error and bad return data
  */
 elgg.security.refreshToken = function() {
-	elgg.action('security/refreshtoken', function(data) {
+	elgg.ajax.action('security/refreshtoken', function(data) {
 
 		// @todo might want to move this to setToken() once http://trac.elgg.org/ticket/3127
 		// is implemented. It's here right now to avoid soggy code.

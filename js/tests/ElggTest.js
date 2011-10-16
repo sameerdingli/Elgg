@@ -1,13 +1,13 @@
 /**
  * Test basic elgg library functions
  */
-ElggLibTest = TestCase("ElggLibTest");
+elgg.ElggTest = TestCase("elgg.ElggTest");
 
-ElggLibTest.prototype.testGlobal = function() {
+elgg.ElggTest.prototype.testGlobalIsWindow = function() {
 	assertTrue(window === elgg.global);
 };
 
-ElggLibTest.prototype.testAssertTypeOf = function() {
+elgg.ElggTest.prototype.testAssertTypeOf = function() {
 	[//Valid inputs
 	    ['string', ''],
         ['object', {}],
@@ -32,7 +32,7 @@ ElggLibTest.prototype.testAssertTypeOf = function() {
 	});
 };
 
-ElggLibTest.prototype.testProvideDoesntClobber = function() {
+elgg.ElggTest.prototype.testProvideDoesntClobber = function() {
 	elgg.provide('foo.bar.baz');
 
 	foo.bar.baz.oof = "test";
@@ -45,7 +45,7 @@ ElggLibTest.prototype.testProvideDoesntClobber = function() {
 /**
  * Try requiring bogus input
  */
-ElggLibTest.prototype.testRequire = function () {
+elgg.ElggTest.prototype.testRequireThrowsExceptionOnMissingRequirement = function () {
 	assertException(function(){ elgg.require(''); });
 	assertException(function(){ elgg.require('garbage'); });
 	assertException(function(){ elgg.require('gar.ba.ge'); });
@@ -58,27 +58,40 @@ ElggLibTest.prototype.testRequire = function () {
 	});
 };
 
-ElggLibTest.prototype.testInherit = function () {
-	function Base() {}
+elgg.ElggTest.prototype.testInheritAffectsInstanceOf = function () {
+	function Parent() {}
 	function Child() {}
 
-	elgg.inherit(Child, Base);
+	elgg.inherit(Child, Parent);
 
-	assertInstanceOf(Base, new Child());
+	assertInstanceOf(Parent, new Child());
+};
+
+elgg.ElggTest.prototype.testInheritSetsConstructor = function() {
+	function Parent() {}
+	function Child() {}
+
+	elgg.inherit(Child, Parent);
+
 	assertEquals(Child, Child.prototype.constructor);
 };
 
-ElggLibTest.prototype.testNormalizeUrl = function() {
-	elgg.config.wwwroot = "http://elgg.org/";
+elgg.ElggTest.prototype.testInheritAllowsSuperConstructorAccess = function() {
+	function Parent() { this.foo = 'bar'; }
+	function Child() { this.super_(); }
 
-	[
-	    ['', elgg.config.wwwroot],
-	    ['test', elgg.config.wwwroot + 'test'],
-	    ['http://google.com', 'http://google.com'],
-	    ['//example.com', '//example.com'],
-	    ['/page', elgg.config.wwwroot + 'page'],
-	    ['mod/plugin/index.php', elgg.config.wwwroot + 'mod/plugin/index.php'],
-	].forEach(function(args) {
-		assertEquals(args[1], elgg.normalize_url(args[0]));
-	});
+	elgg.inherit(Child, Parent);
+	
+	assertEquals('bar', new Child().foo);
+};
+
+elgg.ElggTest.prototype.testInheritAllowsSuperMethodAccess = function() {
+	function Parent() {};
+	Parent.prototype.foo = function() { return 'bar'; };
+	
+	function Child() { this.super_(); }
+	elgg.inherit(Child, Parent);
+	Child.prototype.foo = function() { return this.super_('foo'); };
+
+	assertEquals('bar', new Child().foo());
 };

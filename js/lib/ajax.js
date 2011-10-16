@@ -16,7 +16,7 @@ elgg.provide('elgg.ajax');
  * @param {Object} options Optional. {@see jQuery#ajax}
  * @return {XmlHttpRequest}
  */
-elgg.ajax = function(url, options) {
+elgg.ajax.send = function(url, options) {
 	options = elgg.ajax.handleOptions(url, options);
 
 	options.url = elgg.normalize_url(options.url);
@@ -93,7 +93,7 @@ elgg.ajax.handleOptions = function(url, options) {
  * @param {Object} options {@see jQuery#ajax}
  * @return {XmlHttpRequest}
  */
-elgg.get = function(url, options) {
+elgg.ajax.get = function(url, options) {
 	options = elgg.ajax.handleOptions(url, options);
 
 	options.type = 'get';
@@ -107,7 +107,7 @@ elgg.get = function(url, options) {
  * @param {Object} options {@see jQuery#ajax}
  * @return {XmlHttpRequest}
  */
-elgg.getJSON = function(url, options) {
+elgg.ajax.getJSON = function(url, options) {
 	options = elgg.ajax.handleOptions(url, options);
 
 	options.dataType = 'json';
@@ -121,7 +121,7 @@ elgg.getJSON = function(url, options) {
  * @param {Object} options {@see jQuery#ajax}
  * @return {XmlHttpRequest}
  */
-elgg.post = function(url, options) {
+elgg.ajax.post = function(url, options) {
 	options = elgg.ajax.handleOptions(url, options);
 
 	options.type = 'post';
@@ -175,7 +175,7 @@ elgg.post = function(url, options) {
  * @param {Object} options
  * @return {XMLHttpRequest}
  */
-elgg.action = function(action, options) {
+elgg.ajax.action = function(action, options) {
 	elgg.assertTypeOf('string', action);
 
 	// support shortcut and full URLs
@@ -202,37 +202,4 @@ elgg.action = function(action, options) {
 	};
 
 	return elgg.post(options);
-};
-
-/**
- * Make an API call
- *
- * @example Usage:
- * <pre>
- * elgg.api('system.api.list', {
- *     success: function(data) {
- *         console.log(data);
- *     }
- * });
- * </pre>
- *
- * @param {String} method The API method to be called
- * @param {Object} options {@see jQuery#ajax}
- * @return {XmlHttpRequest}
- */
-elgg.api = function (method, options) {
-	elgg.assertTypeOf('string', method);
-
-	var defaults = {
-		dataType: 'json',
-		data: {}
-	};
-
-	options = elgg.ajax.handleOptions(method, options);
-	options = $.extend(defaults, options);
-
-	options.url = 'services/api/rest/' + options.dataType + '/';
-	options.data.method = method;
-
-	return elgg.ajax(options);
 };
