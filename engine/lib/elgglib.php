@@ -29,6 +29,30 @@ function _elgg_autoload($class) {
 }
 
 /**
+ * Get the current Elgg version information
+ *
+ * @param bool $humanreadable Whether to return a human readable version (default: false)
+ *
+ * @return string|false Depending on success
+ */
+function get_version($humanreadable = false) {
+	global $CONFIG;
+
+	static $version, $release;
+
+	if (isset($CONFIG->path)) {
+		if (!isset($version) || !isset($release)) {
+			if (!include($CONFIG->path . "version.php")) {
+				return false;
+			}
+		}
+		return (!$humanreadable) ? $version : $release;
+	}
+
+	return false;
+}
+
+/**
  * Register all files found in $dir as classes
  * Need to be named MyClass.php
  *
@@ -1087,81 +1111,7 @@ function _elgg_php_error_handler($errno, $errmsg, $filename, $linenum, $vars) {
  * make things easier.
  */
 function elgg_log($message, $level = 'NOTICE') {
-	global $CONFIG;
-
-	// only log when debugging is enabled
-	if (isset($CONFIG->debug)) {
-		// debug to screen or log?
-		$to_screen = !($CONFIG->debug == 'NOTICE');
-
-		switch ($level) {
-			case 'ERROR':
-				// always report
-				elgg_dump("$level: $message", $to_screen, $level);
-				break;
-			case 'WARNING':
-			case 'DEBUG':
-				// report except if user wants only errors
-				if ($CONFIG->debug != 'ERROR') {
-					elgg_dump("$level: $message", $to_screen, $level);
-				}
-				break;
-			case 'NOTICE':
-			default:
-				// only report when lowest level is desired
-				if ($CONFIG->debug == 'NOTICE') {
-					elgg_dump("$level: $message", FALSE, $level);
-				}
-				break;
-		}
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
- * Logs or displays $value.
- *
- * If $to_screen is true, $value is displayed to screen.  Else,
- * it is handled by PHP's {@link error_log()} function.
- *
- * A {@elgg_plugin_hook debug log} is called.  If a handler returns
- * false, it will stop the default logging method.
- *
- * @param mixed  $value     The value
- * @param bool   $to_screen Display to screen?
- * @param string $level     The debug level
- *
- * @return void
- * @since 1.7.0
- */
-function elgg_dump($value, $to_screen = TRUE, $level = 'NOTICE') {
-	global $CONFIG;
-
-	// plugin can return false to stop the default logging method
-	$params = array('level' => $level,
-					'msg' => $value,
-					'to_screen' => $to_screen);
-	if (!elgg_trigger_plugin_hook('debug', 'log', $params, true)) {
-		return;
-	}
-
-	// Do not want to write to screen before page creation has started.
-	// This is not fool-proof but probably fixes 95% of the cases when logging
-	// results in data sent to the browser before the page is begun.
-	if (!isset($CONFIG->pagesetupdone)) {
-		$to_screen = FALSE;
-	}
-
-	if ($to_screen == TRUE) {
-		echo '<pre>';
-		print_r($value);
-		echo '</pre>';
-	} else {
-		error_log(print_r($value, TRUE));
-	}
+	return ElggLogger::getInstance()->log($message, $level);
 }
 
 /**
@@ -1190,63 +1140,7 @@ function elgg_dump($value, $to_screen = TRUE, $level = 'NOTICE') {
  * @since 1.7.0
  */
 function elgg_deprecated_notice($msg, $dep_version, $backtrace_level = 1) {
-	// if it's a major release behind, visual and logged
-	// if it's a 1 minor release behind, visual and logged
-	// if it's for current minor release, logged.
-	// bugfixes don't matter because you're not deprecating between them, RIGHT?
-
-	if (!$dep_version) {
-		return FALSE;
-	}
-
-	$elgg_version = get_version(TRUE);
-	$elgg_version_arr = explode('.', $elgg_version);
-	$elgg_major_version = (int)$elgg_version_arr[0];
-	$elgg_minor_version = (int)$elgg_version_arr[1];
-
-	$dep_major_version = (int)$dep_version;
-	$dep_minor_version = 10 * ($dep_version - $dep_major_version);
-
-	$visual = FALSE;
-
-	if (($dep_major_version < $elgg_major_version) ||
-		($dep_minor_version < $elgg_minor_version)) {
-		$visual = TRUE;
-	}
-
-	$msg = "Deprecated in $dep_major_version.$dep_minor_version: $msg";
-
-	if ($visual) {
-		register_error($msg);
-	}
-
-	// Get a file and line number for the log. Never show this in the UI.
-	// Skip over the function that sent this notice and see who called the deprecated
-	// function itself.
-	$msg .= " Called from ";
-	$stack = array();
-	$backtrace = debug_backtrace();
-	// never show this call.
-	array_shift($backtrace);
-	$i = count($backtrace);
-
-	foreach ($backtrace as $trace) {
-		$stack[] = "[#$i] {$trace['file']}:{$trace['line']}";
-		$i--;
-
-		if ($backtrace_level > 0) {
-			if ($backtrace_level <= 1) {
-				break;
-			}
-			$backtrace_level--;
-		}
-	}
-
-	$msg .= implode("<br /> -> ", $stack);
-
-	elgg_log($msg, 'WARNING');
-
-	return TRUE;
+	return ElggLogger::getInstance()->deprecatedNotice($msg, $dep_version, $backtrace_level);
 }
 
 /**

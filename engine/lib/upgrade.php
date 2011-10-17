@@ -165,30 +165,6 @@ function elgg_get_upgrade_files($upgrade_path = null) {
 }
 
 /**
- * Get the current Elgg version information
- *
- * @param bool $humanreadable Whether to return a human readable version (default: false)
- *
- * @return string|false Depending on success
- */
-function get_version($humanreadable = false) {
-	global $CONFIG;
-
-	static $version, $release;
-
-	if (isset($CONFIG->path)) {
-		if (!isset($version) || !isset($release)) {
-			if (!include($CONFIG->path . "version.php")) {
-				return false;
-			}
-		}
-		return (!$humanreadable) ? $version : $release;
-	}
-
-	return false;
-}
-
-/**
  * Checks if any upgrades need to be run.
  *
  * @param null|array $upgrade_files      Optional upgrade files
