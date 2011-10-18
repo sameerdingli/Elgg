@@ -82,6 +82,10 @@ class ElggDB {
 		return $return;
 	}
 	
+	protected function getDataRow($query, $callback = '') {
+		return $this->getData($query, $callback, true);
+	}
+	
 	protected function fetchObject($result) {
 		return mysql_fetch_object($result);
 	}
@@ -187,6 +191,25 @@ class ElggDB {
 		return $this->deleteData($query);
 	}
 	
+	public function getSubtypeId($type, $subtype) {
+		$type = $this->quote($type, false);
+		$subtype = $this->quote($subtype, false);
+		
+		if ($subtype == "") {
+			return FALSE;
+		}
+		
+		// Todo: cache here? Or is looping less efficient that going to the db each time?
+		$query = "SELECT * FROM {$this->prefix}entity_subtypes 
+		          WHERE type='$type' AND subtype='$subtype'";
+		$result = $this->getDataRow($query);
+		
+		if ($result) {
+			return $result->id;
+		}
+		
+		return FALSE;
+	}
 	protected function quote($string, $write = true) {
 		return mysql_real_escape_string($string, $write ? $this->writelink : $this->readlink);
 	}
