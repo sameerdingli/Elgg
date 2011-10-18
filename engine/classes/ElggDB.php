@@ -92,7 +92,7 @@ class ElggDB {
 		return datalist_get($name);
 	}
 	
-	public function getConfig($name, ElggSite $site) {
+	public function getConfig($name, $site_guid) {
 		$name = $this->escapeString($name);
 		
 		// check for deprecated values.
@@ -122,35 +122,35 @@ class ElggDB {
 		}
 		
 		$result = $this->getDataRow("SELECT value FROM {$this->prefix}config
-				WHERE name = '$name' and site_guid = $site->guid");
+				WHERE name = '$name' and site_guid = $site_guid");
 		
 		return $result ? unserialize($result->value) : null;
 	}
 	
-	public function setConfig($name, $value, ElggSite $site) {
+	public function setConfig($name, $value, $site_guid) {
 		$name = trim($name);
 		
-		// cannot store anything longer than 32 characters in db, so catch before we set
-		if (elgg_strlen($name) > 32) {
+		// cannot store anything longer than 32 bytes in db, so catch before we set
+		if (strlen($name) > 32) {
 			$this->logger->log("The name length for configuration variables cannot be greater than 32", "ERROR");
 			return false;
 		}
 		
 		// Unset existing
-		$this->unsetConfig($name, $site);
+		$this->unsetConfig($name, $site_guid);
 		
 		$value = $this->escapeString(serialize($value));
 		
 		$query = "insert into {$this->prefix}config"
-		. " set name = '$name', value = '$value', site_guid = $site->guid";
+		. " set name = '$name', value = '$value', site_guid = $site_guid";
 
 		return $this->insertData($query) !== false;		
 	}
 	
-	public function unsetConfig($name, ElggSite $site) {
+	public function unsetConfig($name, $site_guid) {
 		$name = $this->escapeString($name);
 		
-		$query = "delete from {$this->prefix}config where name = '$name' and site_guid = $site->guid";
+		$query = "delete from {$this->prefix}config where name = '$name' and site_guid = $site_guid";
 		return $this->deleteData($query);
 	}	
 	
@@ -160,7 +160,7 @@ class ElggDB {
 		global $CONFIG;
 		
 		if (!isset(self::$instance)) {
-			self::$instance = new ElggDB($CONFIG->dbprefix, ElggMemcache::getInstance());
+			self::$instance = new ElggDB($CONFIG->dbprefix);
 		}
 		
 		return self::$instance;
