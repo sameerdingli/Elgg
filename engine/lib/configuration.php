@@ -276,6 +276,7 @@ function datalist_get($name) {
  * @return bool
  * @access private
  */
+
 function datalist_set($name, $value) {
 	global $CONFIG, $DATALIST_CACHE;
 
