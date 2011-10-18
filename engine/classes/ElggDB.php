@@ -3,15 +3,30 @@ class ElggDB {
 	
 	private $prefix;
 	private $cache;
-	private $link;
+	private $readlink;
+	private $writelink;
+	private $logger;
 	
-	public function __construct($prefix, ElggSharedMemoryCache $cache) {
+	public function __construct($prefix) {
 		$this->prefix = $prefix;
+		
+		// Null cache by default
+		$this->cache = new ElggNullSharedMemoryCache();
+		
+		// Null logger by default
+		$this->logger = new ElggNullLogger();
+	}
+	
+	public function setCache(ElggSharedMemoryCache $cache) {
 		$this->cache = $cache;
 	}
+	
+	public function setLogger(ElggLogger $logger) {
+		$this->logger = $logger;
+	}
 		
-	public function execute($query) {
-		return mysql_query($query, $this->link);
+	public function execute($query, $write = true) {
+		return mysql_query($query, $write ? $this->writelink : $this->readlink);
 	}
 	
 	public function runQuery($query, $callback, $single = false) {
@@ -27,15 +42,46 @@ class ElggDB {
 	}
 	
 	public function insertData($query) {
-		return insert_data($query);
+		$query = $this->formatQuery($query);
+		$this->logger->log("DB query $query", 'NOTICE');
+		
+		// Invalidate query cache
+		$this->cache->clear();
+		$this->logger->log("Query cache invalidated", 'NOTICE');
+		
+		if ($this->execute($query, true)) {
+			return mysql_insert_id($dblink);
+		}
+	
+		return FALSE;
 	}
 	
 	public function updateData($query) {
-		return update_data($query);
+		$query = $this->formatQuery($query);
+		$this->logger->log("DB query $query", 'NOTICE');
+	
+		// Invalidate query cache
+		$this->cache->clear();
+		$this->logger->log("Query cache invalidated", 'NOTICE');
+	
+		return !!$this->execute("$query", true);
 	}
 	
 	public function deleteData($query) {
-		return delete_data($query);
+		$query = $this->formatQuery($query);
+		$this->logger->log("DB query $query", 'NOTICE');
+	
+		$dblink = get_db_link('write');
+	
+		// Invalidate query cache
+		$this->cache->clear();
+		$this->logger->log("Query cache invalidated", 'NOTICE');
+	
+		if ($this->execute("$query", true)) {
+			return mysql_affected_rows($dblink);
+		}
+	
+		return FALSE;	
 	}
 	
 	public function setDatalist($name, $value) {
@@ -64,7 +110,7 @@ class ElggDB {
 		global $CONFIG;
 		
 		if (!isset(self::$instance)) {
-			self::$instance = new ElggDB($CONFIG->dbprefix);
+			self::$instance = new ElggDB($CONFIG->dbprefix, ElggMemcache::getInstance());
 		}
 		
 		return self::$instance;
