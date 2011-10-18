@@ -1,23 +1,22 @@
 <?php
 class ElggDB {
+	protected $prefix;
 	
-	private $prefix;
-	private $cache;
-	private $readlink;
-	private $writelink;
-	private $logger;
+	protected $readlink;
+	protected $writelink;
 	
-	public function __construct($prefix) {
+	protected $cache;
+	protected $logger;
+	
+	public function __construct($readlink, $writelink, $prefix) {
+		$this->readlink = $readlink;
+		$this->writelink = $writelink;
 		$this->prefix = $prefix;
-		
-		// Null cache by default
-		$this->cache = new ElggNullSharedMemoryCache();
-		
-		// Null logger by default
+		$this->cache = new ElggNullCache();
 		$this->logger = new ElggNullLogger();
 	}
 	
-	public function setCache(ElggSharedMemoryCache $cache) {
+	public function setCache(ElggCache $cache) {
 		$this->cache = $cache;
 	}
 	
@@ -25,63 +24,94 @@ class ElggDB {
 		$this->logger = $logger;
 	}
 		
-	public function execute($query, $write = true) {
+	protected function query($query, $write = true) {
+		$this->logger->log("DB query $query", 'NOTICE');
 		return mysql_query($query, $write ? $this->writelink : $this->readlink);
 	}
 	
-	public function runQuery($query, $callback, $single = false) {
-		return elgg_query_runner($query, $callback, $single);
+	/**
+	 * Remove newlines and extra spaces so logs are easier to read
+	 */
+	protected function formatQuery($query) {
+		return preg_replace('/\s\s+/', ' ', $query);
 	}
 	
-	private function formatQuery($query) {
-		return elgg_format_query($query);
-	}
-	
-	public function getData($query, $callback = '') {
-		return $this->runQuery($query, $callback, false);
-	}
-	
-	public function insertData($query) {
+	protected function getData($query, $callback = '', $single = false) {
 		$query = $this->formatQuery($query);
-		$this->logger->log("DB query $query", 'NOTICE');
+	
+		// since we want to cache results of running the callback, we need to
+		// need to namespace the query with the callback, and single result request.
+		$hash = (string)$callback . (string)$single . $query;
+	
+		// Is cached?
+		$cached_query = $this->cache->load($hash);
+
+		if ($cached_query !== FALSE) {
+			$this->logger->log("DB query $query results returned from cache (hash: $hash)", 'NOTICE');
+			return $cached_query;
+		}
+	
+		$return = array();
+			
+		if ($result = $this->query($query, false)) {
+			// test for callback once instead of on each iteration.
+			// @todo check profiling to see if this needs to be broken out into
+			// explicit cases instead of checking in the interation.
+			$is_callable = is_callable($callback);
+			while ($row = $this->fetchObject($result)) {
+				if ($is_callable) {
+					$row = $callback($row);
+				}
+	
+				if ($single) {
+					$return = $row;
+					break;
+				} else {
+					$return[] = $row;
+				}
+			}
+		}
+		
+		if (empty($return)) {
+			$this->logger->log("DB query $query returned no results.", 'NOTICE');
+		}
+		
+		$this->cache->save($hash, $return);
+		$this->logger->log("DB query $query results cached (hash: $hash)", 'NOTICE');
+		
+		return $return;
+	}
+	
+	protected function fetchObject($result) {
+		return mysql_fetch_object($result);
+	}
+	
+	protected function insertData($query) {
+		$query = $this->formatQuery($query);
 		
 		// Invalidate query cache
 		$this->cache->clear();
-		$this->logger->log("Query cache invalidated", 'NOTICE');
+		$this->logger->log("Query cache invalidated by insert", 'NOTICE');
 		
-		if ($this->execute($query, true)) {
-			return mysql_insert_id($dblink);
-		}
-	
-		return FALSE;
+		return $this->query($query);
 	}
 	
-	public function updateData($query) {
+	protected function updateData($query) {
 		$query = $this->formatQuery($query);
-		$this->logger->log("DB query $query", 'NOTICE');
 	
-		// Invalidate query cache
 		$this->cache->clear();
-		$this->logger->log("Query cache invalidated", 'NOTICE');
+		$this->logger->log("Query cache invalidated by update", 'NOTICE');
 	
-		return !!$this->execute("$query", true);
+		return $this->query($query);
 	}
 	
-	public function deleteData($query) {
+	protected function deleteData($query) {
 		$query = $this->formatQuery($query);
-		$this->logger->log("DB query $query", 'NOTICE');
 	
-		$dblink = get_db_link('write');
-	
-		// Invalidate query cache
 		$this->cache->clear();
-		$this->logger->log("Query cache invalidated", 'NOTICE');
+		$this->logger->log("Query cache invalidated by delete", 'NOTICE');
 	
-		if ($this->execute("$query", true)) {
-			return mysql_affected_rows($dblink);
-		}
-	
-		return FALSE;	
+		return $this->query($query);
 	}
 	
 	public function setDatalist($name, $value) {
@@ -93,7 +123,6 @@ class ElggDB {
 	}
 	
 	public function getConfig($name, $site_guid) {
-		$name = $this->escapeString($name);
 		
 		// check for deprecated values.
 		// @todo might be a better spot to define this?
@@ -121,15 +150,16 @@ class ElggDB {
 			$this->logger->deprecatedNotice($msg, $dep_version);
 		}
 		
-		$result = $this->getDataRow("SELECT value FROM {$this->prefix}config
-				WHERE name = '$name' and site_guid = $site_guid");
+		$name = $this->quote($name, false);
+		$site_guid = (int)$site_guid;
+		
+		$query = "SELECT value FROM {$this->prefix}config WHERE name = '$name' AND site_guid = $site_guid";
+		$result = $this->getData($query, '', true);
 		
 		return $result ? unserialize($result->value) : null;
 	}
 	
 	public function setConfig($name, $value, $site_guid) {
-		$name = trim($name);
-		
 		// cannot store anything longer than 32 bytes in db, so catch before we set
 		if (strlen($name) > 32) {
 			$this->logger->log("The name length for configuration variables cannot be greater than 32", "ERROR");
@@ -139,30 +169,26 @@ class ElggDB {
 		// Unset existing
 		$this->unsetConfig($name, $site_guid);
 		
-		$value = $this->escapeString(serialize($value));
+		$value = $this->quote(serialize($value));
+		$name = $this->quote($name);
+		$site_guid = (int)$site_guid;
 		
-		$query = "insert into {$this->prefix}config"
-		. " set name = '$name', value = '$value', site_guid = $site_guid";
+		$query = "INSERT INTO {$this->prefix}config "
+		       . "SET name = '$name', value = '$value', site_guid = $site_guid";
 
 		return $this->insertData($query) !== false;		
 	}
 	
 	public function unsetConfig($name, $site_guid) {
-		$name = $this->escapeString($name);
+		$name = $this->quote($name);
+		$site_guid = (int)$site_guid;
 		
-		$query = "delete from {$this->prefix}config where name = '$name' and site_guid = $site_guid";
+		$query = "DELETE FROM {$this->prefix}config WHERE name = '$name' AND site_guid = $site_guid";
 		return $this->deleteData($query);
-	}	
-	
-	private static $instance;
-	
-	public static function getInstance() {
-		global $CONFIG;
-		
-		if (!isset(self::$instance)) {
-			self::$instance = new ElggDB($CONFIG->dbprefix);
-		}
-		
-		return self::$instance;
 	}
+	
+	protected function quote($string, $write = true) {
+		return mysql_real_escape_string($string, $write ? $this->writelink : $this->readlink);
+	}
+
 }
