@@ -147,9 +147,9 @@ elgg.ui.Button.prototype.setFocus = function(focus) {
 };
 
 elgg.ui.Button.prototype.setType = function(type) {
-    this.removeClass(elgg.ui.Button.TYPE_CSS[this.type_]);
+    this.removeClass('elgg-button-' + this.type_);
     this.type_ = type;
-    this.addClass(elgg.ui.Button.TYPE_CSS[this.type_]);
+    this.addClass('elgg-button-' + this.type_);
     return this;
 };
 
