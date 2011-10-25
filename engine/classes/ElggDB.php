@@ -25,6 +25,7 @@ class ElggDB {
 	}
 		
 	protected function query($query, $write = true) {
+		$query = $this->formatQuery($query);
 		$this->logger->log("DB query $query", 'NOTICE');
 		return mysql_query($query, $write ? $this->writelink : $this->readlink);
 	}
@@ -91,31 +92,24 @@ class ElggDB {
 	}
 	
 	protected function insertData($query) {
-		$query = $this->formatQuery($query);
-		
-		// Invalidate query cache
 		$this->cache->clear();
 		$this->logger->log("Query cache invalidated by insert", 'NOTICE');
 		
-		return $this->query($query);
+		return $this->query($query, true);
 	}
 	
 	protected function updateData($query) {
-		$query = $this->formatQuery($query);
-	
 		$this->cache->clear();
 		$this->logger->log("Query cache invalidated by update", 'NOTICE');
 	
-		return $this->query($query);
+		return $this->query($query, true);
 	}
 	
 	protected function deleteData($query) {
-		$query = $this->formatQuery($query);
-	
 		$this->cache->clear();
 		$this->logger->log("Query cache invalidated by delete", 'NOTICE');
 	
-		return $this->query($query);
+		return $this->query($query, true);
 	}
 	
 	public function setDatalist($name, $value) {
@@ -157,7 +151,8 @@ class ElggDB {
 		$name = $this->quote($name, false);
 		$site_guid = (int)$site_guid;
 		
-		$query = "SELECT value FROM {$this->prefix}config WHERE name = '$name' AND site_guid = $site_guid";
+		$query = "SELECT value FROM {$this->prefix}config
+		          WHERE name = '$name' AND site_guid = $site_guid";
 		$result = $this->getData($query, '', true);
 		
 		return $result ? unserialize($result->value) : null;
@@ -177,8 +172,8 @@ class ElggDB {
 		$name = $this->quote($name);
 		$site_guid = (int)$site_guid;
 		
-		$query = "INSERT INTO {$this->prefix}config "
-		       . "SET name = '$name', value = '$value', site_guid = $site_guid";
+		$query = "INSERT INTO {$this->prefix}config
+		          SET name = '$name', value = '$value', site_guid = $site_guid";
 
 		return $this->insertData($query) !== false;		
 	}
@@ -187,7 +182,8 @@ class ElggDB {
 		$name = $this->quote($name);
 		$site_guid = (int)$site_guid;
 		
-		$query = "DELETE FROM {$this->prefix}config WHERE name = '$name' AND site_guid = $site_guid";
+		$query = "DELETE FROM {$this->prefix}config
+		          WHERE name = '$name' AND site_guid = $site_guid";
 		return $this->deleteData($query);
 	}
 	
@@ -195,21 +191,137 @@ class ElggDB {
 		$type = $this->quote($type, false);
 		$subtype = $this->quote($subtype, false);
 		
-		if ($subtype == "") {
-			return FALSE;
-		}
-		
-		// Todo: cache here? Or is looping less efficient that going to the db each time?
+		// TODO: cache here? Or is looping less efficient that going to the db each time?
 		$query = "SELECT * FROM {$this->prefix}entity_subtypes 
+		          WHERE type = '$type' AND subtype = '$subtype'";
+		$result = $this->getDataRow($query);
+		
+		return $result ? $result->id : FALSE;
+	}
+	
+	public function getSubtypeFromId($id) {
+		$id = (int)$id;
+		
+		// TODO: cache here? Or is looping less efficient that going to the db each time?
+		$query = "SELECT * FROM {$this->prefix}entity_subtypes
+		          WHERE id = $id";
+		$result = $this->getDataRow($query);
+		
+		return $result ? $result->subtype : FALSE;
+	}
+	
+	public function getSubtypeClass($type, $subtype) {
+		$type = $this->quote($type);
+		$subtype = $this->quote($subtype);
+		
+		// TODO: cache here? Or is looping less efficient that going to the db each time?
+		$query = "SELECT * FROM {$this->prefix}entity_subtypes
 		          WHERE type='$type' AND subtype='$subtype'";
 		$result = $this->getDataRow($query);
 		
-		if ($result) {
-			return $result->id;
+		return $result ? $result->class : FALSE;
+	}
+	
+	public function getSubtypeClassFromId($id) {
+		$id = (int)$id;
+		
+		// TODO: cache here? Or is looping less efficient that going to the db each time?
+		$query = "SELECT * FROM {$this->prefix}entity_subtypes
+		          WHERE id = $id";
+		$result = $this->getDataRow($query);
+		
+		return $result ? $result->class : FALSE;
+	}
+	
+	public function addSubtype($type, $subtype, $class) {
+		$type = $this->quote($type);
+		$subtype = $this->quote($subtype);
+		$class = $this->quote($class);
+	
+		if ($id = $this->getSubtypeId($type, $subtype)) {
+			return $id;
 		}
 		
-		return FALSE;
+		$query = "INSERT INTO {$this->prefix}entity_subtypes
+		          (type, subtype, class) VALUES ('$type', '$subtype', '$class')";
+		return $this->insertData($query);
 	}
+	
+	public function updateSubtype($type, $subtype, $class = '') {
+		if (!$id = $this->getSubtypeId($type, $subtype)) {
+			return FALSE;
+		}
+		
+		$type = $this->quote($type);
+		$subtype = $this->quote($subtype);
+	
+		$query = "UPDATE {$this->prefix}entity_subtypes
+		          SET type = '$type', subtype = '$subtype', class = '$class'
+		          WHERE id = $id";
+		return $this->updateData($query);
+	}
+
+	public function removeSubtype($type, $subtype) {
+		$type = $this->quote($type);
+		$subtype = $this->quote($subtype);
+		
+		$query = "DELETE FROM {$this->prefix}entity_subtypes
+		          WHERE type = '$type' AND subtype = '$subtype'";
+		return $this->deleteData($query);
+	}
+	
+	public function updateEntity($guid, $owner_guid, $access_id, $container_guid, $time_created, $site_guid) {
+		$guid = (int) $guid;
+		$owner_guid = (int) $owner_guid;
+		$access_id = (int) $access_id;
+		$container_guid = (int) $container_guid;
+		$time_created = (int) $time_created;
+		$site_guid = (int) $site_guid;
+		$time_updated = time();
+	
+		$query = "UPDATE {$this->prefix}entities
+		          SET owner_guid = '$owner_guid', access_id = '$access_id',
+		              container_guid = '$container_guid', time_created = '$time_created',
+		              time_updated = '$time_updated', site_guid = '$site_guid'
+		          WHERE guid = $guid";
+
+		return $this->updateData($query);
+	}
+	
+	function createEntity($type, $subtype, $owner_guid, $access_id, $site_guid, $container_guid = 0) {
+		$type = $this->quote($type);
+		$subtype_id = (int) $this->getSubtypeId($type, $subtype);
+		$owner_guid = (int) $owner_guid;
+		$access_id = (int) $access_id;
+		$site_guid = (int) $site_guid;
+		$container_guid = $container_guid ? (int) $container_guid : $owner_guid;
+		$time = time();
+		
+		$query = "INSERT INTO {$this->prefix}entities
+		          (type, subtype, owner_guid, site_guid, container_guid,
+		           access_id, time_created, time_updated, last_action)
+		          VALUES
+		          ('$type', $subtype_id, $owner_guid, $site_guid, $container_guid,
+		            $access_id, $time, $time, $time)";
+		
+		return $this->insertData($query);
+	}
+	
+	function getEntityRow($guid) {
+		if (!$guid) {
+			return false;
+		}
+		
+		$guid = (int) $guid;
+		$access = $this->getAccessSqlSuffix();
+		
+		$query = "SELECT * FROM {$this->prefix}entities
+		          WHERE guid = $guid AND $access";
+		
+		return $this->getDataRow($query);
+	}
+	
+	
 	protected function quote($string, $write = true) {
 		return mysql_real_escape_string($string, $write ? $this->writelink : $this->readlink);
 	}
