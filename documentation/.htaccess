@@ -26,6 +26,9 @@
 RewriteBase /elgg/documentation/
 
 RewriteEngine on
+
+RewriteRule ^cache.manifest$ cache.manifest.php
+
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.*)$ index.php?page=$1

@@ -1,8 +1,5 @@
-Overview
-========
-
-Requirements
------------- 
+Installation: Requirements
+==========================
 *	MySQL 5 or greater
 *	PHP 5.2 or greater with the following extensions:
 	*	GD (for graphics processing: user and group profile icons plus many plugins)
@@ -20,7 +17,3 @@ if the bug is web server specific (but those are rare). Other possible configura
 mode with Apache and using the web servers [[Elgg and lighttpd|lighttpd]], [[Elgg and nginx|nginx]], or
 [[Elgg and IIS|IIS]]. Elgg should generally work with these web servers but this requires additional configuration 
 such as porting the rewrite rules.
-
-Instructions
-------------
-

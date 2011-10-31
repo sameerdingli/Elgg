@@ -1,13 +1,19 @@
 <?php 
 require_once dirname(dirname(__FILE__)) . '/vendors/markdown/markdown.php';
+require_once dirname(__FILE__) . '/settings.php';
 
-function view($name) {
-	$dir = dirname(__FILE__) . '/pages/';
-
+function view($name, $language) {
+	// basic security measure
+	if (strpos($name, '..') !== false || strpos($language, '..') !== false) {
+		return false;
+	}
+	
+	$pages = dirname(__FILE__) . '/pages/';
+	
 	ob_start();
 
-	if (!include("$dir/$name.md")) {
-		include("$dir/$name/index.md");
+	if (!include("$pages/$language/$name.md")) {
+		include("$pages/$language/$name/index.md");
 	}
 
 	$content = ob_get_clean();
@@ -21,25 +27,25 @@ $page = $_REQUEST['page'];
 
 $page = trim($page, '/');
 
-if (empty($page)) {
-	$language = $page = 'en';
+// Determine language, normalize page
+if (!empty($page)) {
+	$page = explode('/', $page);
+	$language = array_shift($page);
+	$page = implode('/', $page);
 } else {
-	$language = array_shift(split('/', $page));
+	$language = 'en';
 }
 
-// SETTINGS
-$debug = false;
-$root = '/elgg/documentation/';
+$base = "$root/$language/";
 
+$canonical = rtrim("$root/$language/$page", '/');
 
-
-$base = $root . $language . '/';
-
-$canonical = rtrim($root . $page, '/');
+$content = view($page, $language);
 
 // First line is always assumed to be title
-$content = view($page);
 $title = array_shift(explode("\n", $content));
+
+// Format before inserting into page
 $content = Markdown($content);
 
 if ($debug) {
@@ -49,7 +55,6 @@ if ($debug) {
 		'content' => $content,
 		'language' => $language,
 		'page' => $page,
-		'root' => $root,
 		'title' => $title,
 	);
 	echo "<pre>", print_r($vars), "</pre>";

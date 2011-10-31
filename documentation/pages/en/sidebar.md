@@ -8,6 +8,6 @@
 *	[Roadmap](http://trac.elgg.org/roadmap)
 *	[FAQ](introduction/about/faq)
 
-#### Requirements + Installation
-*	Overview
-*	Troubleshooting
+#### Installation
+*	[Requirements](introduction/installation/requirements)
+*	[Troubleshooting](introduction/installation/troubleshooting)

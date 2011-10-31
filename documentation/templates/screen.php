@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html<?php if ($appcache) { echo " manifest=\"$root/cache.manifest\""; } ?>>
 <head>
 	<meta charset="UTF-8" />
 	<meta content="IE=edge;chrome=1" http-equiv="X-UA-Compatible" />
@@ -10,7 +10,7 @@
 	<title><?php echo $title; ?> -- Elgg Documentation</title>
 	
 	<link rel="canonical" href="<?php echo $canonical; ?>" />
-	<link rel="stylesheet" href="<?php echo $root; ?>style.css" />
+	<link rel="stylesheet" href="<?php echo $root; ?>/style.css" />
 </head>
 <body>
 	<div class="page">
