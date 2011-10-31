@@ -1,19 +1,28 @@
+Intro FAQ
+=========
+
 == What is Elgg? ==
 
-Elgg is a social networking framework. It provides the necessary functionality to allow you to run your own social networking site, whether publicly (like Facebook) or internally on a networked intranet (like Microsoft Sharepoint).
+Elgg is a social networking framework. It provides the necessary functionality to allow you to run your own social
+networking site, whether publicly (like Facebook) or internally on a networked intranet (like Microsoft Sharepoint).
 
-To run Elgg, you need to have your own web server and a certain amount of technical knowledge - or access to someone who does, like a system administrator. (There are more detailed requirements [[Installation/Requirements|over here]].)
+To run Elgg, you need to have your own web server and a certain amount of technical knowledge - or access to someone
+who does, like a system administrator. (There are more detailed requirements [[Installation/Requirements|over here]].)
 
 There is also a [http://demo.elgg.org demo site] running a standard installation of Elgg.
 
 == What features do I get? ==
 
-Elgg comes with advanced user management and administration, social networking, cross-site tagging, powerful access control lists, internationalisation support, multiple view support (eg cell phones, iPhone), an advanced templating engine, a widget framework and more. A full list is available here [[Features]].
+Elgg comes with advanced user management and administration, social networking, cross-site tagging, powerful access
+control lists, internationalisation support, multiple view support (eg cell phones, iPhone), an advanced templating
+engine, a widget framework and more. A full list is available here [[Features]].
 
 If you need more functionality than what Elgg offers out-of-the-box there are a couple of options:
 
-* Add more by [[Configuration/Plugins|installing plugins]] - for example, blogs, forums, social bookmarks
+* Add more by [installing plugins][config] - for example, blogs, forums, social bookmarks
 * Develop your own features, or hire someone to do this for you
+
+ [config]: administration/introduction/configuration
 
 == How much does it cost? ==
 
