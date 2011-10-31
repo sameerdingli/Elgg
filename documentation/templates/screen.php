@@ -10,7 +10,7 @@
 	<title><?php echo $title; ?> -- Elgg Documentation</title>
 	
 	<link rel="canonical" href="<?php echo $canonical; ?>" />
-	<link rel="stylesheet" href="<?php echo $root; ?>/style.css" />
+	<link rel="stylesheet" href="<?php echo $root; ?>/assets/screen.css" />
 </head>
 <body>
 	<div class="page">

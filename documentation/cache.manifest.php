@@ -5,5 +5,13 @@ include dirname(__FILE__) . '/settings.php';
 
 echo <<<MANIFEST
 CACHE MANIFEST
-{$root}/style.css
+# Version: 1
+
+CACHE:
+{$root}/assets/screen.css
+
+# NETWORK:
+
+# FALLBACK:
+
 MANIFEST;

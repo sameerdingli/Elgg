@@ -8,4 +8,4 @@ $root = rtrim($root, '/');
 $debug = false;
 
 // Turn this off during development or you wont see updates!
-$appcache = true;
+$appcache = false;
