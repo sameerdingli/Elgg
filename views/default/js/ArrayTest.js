@@ -9,3 +9,19 @@ ArrayTest.prototype.testMap = function() {
 	assertEquals(arr, mapped);
 	assertNotSame(arr, mapped);
 };
+
+ArrayTest.prototype.testForEach = function() {
+	[0, 1, 2].forEach(function(val, i) {
+		assertEquals(val, i);
+	});
+};
+
+ArrayTest.prototype.testEvery = function() {
+	assertTrue([true, true, true].every(function(val) {
+		return val;
+	}));
+	
+	assertFalse([true, false, true].every(function(val) {
+		return val;
+	}));
+};
