@@ -1,50 +1,54 @@
-/**
- * @class Tests elgg.structs.PriorityList
- */
-PriorityListTest = TestCase("PriorityListTest");
-
-PriorityListTest.prototype.setUp = function() {
-	this.list = new elgg.structs.PriorityList();
-};
-
-PriorityListTest.prototype.tearDown = function() {
-	this.list = null;
-};
-
-PriorityListTest.prototype.testInsert = function() {
-	this.list.insert('foo');
-
-	assertEquals('foo', this.list.priorities_[500][0]);
-
-	this.list.insert('bar', 501);
-
-	assertEquals('foo', this.list.priorities_[501][0]);
-};
-
-PriorityListTest.prototype.testInsertRespectsPriority = function() {
-	var values = [5, 4, 3, 2, 1, 0];
-
-	for (var i in values) {
-		this.list.insert(values[i], values[i]);
-	}
-
-	this.list.forEach(function(elem, idx) {
-		assertEquals(elem, idx);
-	});
-};
-
-PriorityListTest.prototype.testInsertHandlesDuplicatePriorities = function() {
-	values = [0, 1, 2, 3, 4, 5, 6, 7, 8 , 9];
-
-	for (var i in values) {
-		this.list.insert(values[i], values[i]/3);
-	}
-
-	this.list.forEach(function(elem, idx) {
-		assertEquals(elem, idx);
-	});
-};
-
-PriorityListTest.prototype.testEveryDefaultsToTrue = function() {
-	assertTrue(this.list.every(elgg.functions.NULL));
-};
+define('elgg/structs/PriorityListTest', [
+    'elgg/functions',
+    'elgg/structs/PriorityList'
+], function(functions, PriorityList) {
+	var Test = TestCase("elgg/structs/PriorityListTest");
+	
+	Test.prototype.setUp = function() {
+		this.list = new PriorityList();
+	};
+	
+	Test.prototype.tearDown = function() {
+		this.list = null;
+	};
+	
+	Test.prototype.testInsert = function() {
+		this.list.insert('foo');
+		
+		assertEquals('foo', this.list.priorities_[500][0]);
+		
+		this.list.insert('bar', 501);
+		
+		assertEquals('bar', this.list.priorities_[501][0]);
+	};
+	
+	Test.prototype.testInsertRespectsPriority = function() {
+		var values = [6, 5, 4, 3, 2, 1];
+		
+		values.forEach(function(val) {
+			this.list.insert(val, val);
+		}, this);
+		
+		this.list.forEach(function(val, idx) {
+			assertEquals(val - 1, idx);
+		});
+	};
+	
+	Test.prototype.testInsertHandlesDuplicatePriorities = function() {
+		values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+		
+		values.forEach(function(val) {
+			this.list.insert(val, val/2);
+		}, this);
+		
+		this.list.forEach(function(val, idx) {
+			assertEquals(val - 1, idx);
+		});
+	};
+	
+	Test.prototype.testEveryDefaultsToTrue = function() {
+		assertTrue(this.list.every(functions.NULL));
+	};
+	
+	return Test;
+});
