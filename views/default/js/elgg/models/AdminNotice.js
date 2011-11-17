@@ -1,9 +1,14 @@
-elgg.provide('elgg.models.AdminNotice');
-
-elgg.require('elgg.models.Object');
-
-
-elgg.models.AdminNotice = function(object) {
-	this.super_(object);
-};
-elgg.inherit(elgg.models.AdminNotice, elgg.models.Object);
+define('elgg/models/AdminNotice', [
+	'elgg',
+	'elgg/models/Object'
+], function(elgg, ElggObject) {
+	elgg.provide('elgg.models.AdminNotice');
+	
+	var AdminNotice = function(object) {
+		this.super_(object);
+	};
+	elgg.inherit(AdminNotice, ElggObject);
+	
+	
+	return elgg.models.AdminNotice = AdminNotice;
+});
