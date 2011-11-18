@@ -1,36 +1,32 @@
-ElggSessionTest = TestCase("ElggSessionTest");
-
-ElggSessionTest.prototype.testGetCookie = function() {
-	assertEquals(document.cookie, elgg.session.cookie());
-};
-
-ElggSessionTest.prototype.testGetCookieKey = function() {
-	document.cookie = "name=value";
-	assertEquals('value', elgg.session.cookie('name'));
+require(function(require) {
+	var session = require('elgg/session');
 	
-	document.cookie = "name=value2";
-	assertEquals('value2', elgg.session.cookie('name'));
 	
-	document.cookie = "name=value";
-	document.cookie = "name2=value2";
-	assertEquals('value', elgg.session.cookie('name'));
-	assertEquals('value2', elgg.session.cookie('name2'));
-};
-
-ElggSessionTest.prototype.testSetCookieKey = function() {
-	elgg.session.cookie('name', 'value');
-	assertEquals('value', elgg.session.cookie('name'));
-
-	elgg.session.cookie('name', 'value2');
-	assertEquals('value2', elgg.session.cookie('name'));
 	
-	elgg.session.cookie('name', 'value');
-	elgg.session.cookie('name2', 'value2');
-	assertEquals('value', elgg.session.cookie('name'));
-	assertEquals('value2', elgg.session.cookie('name2'));
+	var Test = TestCase("elgg/sessionTest");
 	
-	elgg.session.cookie('name', null);
-	elgg.session.cookie('name2', null);
-	assertUndefined(elgg.session.cookie('name'));
-	assertUndefined(elgg.session.cookie('name2'));
-};
+	
+	Test.prototype.testCanGetCookie = function() {
+		assertEquals(document.cookie, session.cookie());
+	};
+	
+	
+	Test.prototype.testCanGetAndSetCookieKey = function() {
+		session.cookie("name", "value");
+		assertEquals('value', session.cookie('name'));
+		
+		session.cookie("name", "value");
+		session.cookie("name", "value2");
+		assertEquals('value2', session.cookie('name'));
+		
+		session.cookie("name", "value");
+		session.cookie("name2", "value2");
+		assertEquals('value', session.cookie('name'));
+		assertEquals('value2', session.cookie('name2'));
+		
+		session.cookie('name', null);
+		session.cookie('name2', null);
+		assertUndefined(session.cookie('name'));
+		assertUndefined(session.cookie('name2'));
+	};
+});
