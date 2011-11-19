@@ -1,8 +1,21 @@
-elgg.provide('elgg.models.Object');
-
-elgg.require('elgg.models.Entity');
-
-elgg.models.Object = function(guid) {
-	this.super_(guid);
-};
-elgg.inherit(elgg.models.Object, elgg.models.Entity);
+/**
+ * Data model for objects
+ */
+define('elgg/models/Object', function(require) {
+	var elgg = require('elgg');
+	var ElggEntity = require('elgg/models/Entity');
+	
+	
+	
+	/**
+	 * @constructor
+	 * @extends {elgg.models.Entity}
+	 */
+	var ElggObject = function(guid) {
+		this.super_(guid);
+	};
+	elgg.inherit(ElggObject, ElggEntity);
+	
+	
+	return ElggObject;
+});

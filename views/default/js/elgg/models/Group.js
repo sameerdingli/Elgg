@@ -1,17 +1,22 @@
 /**
  * Data model for groups
  */
-elgg.provide('elgg.models.Group');
-
-elgg.require('elgg.models.Collection');
-
-
-
-/**
- * 
- * @param {Object} object The GUID of the group
- */
-elgg.models.Group = function(object) {
-	this.super_(object);
-};
-elgg.inherit(elgg.models.Group, elgg.models.Collection);
+define('elgg/models/Group', function(require) {
+	var elgg = require('elgg');
+	var ElggEntity = require('elgg/models/Entity');
+	
+	
+	
+	/**
+	 * @param {Object} object The GUID of the group
+	 * @constructor
+	 * @extends {elgg.models.Entity}
+	 */
+	var ElggGroup = function(object) {
+		this.super_(object);
+	};
+	elgg.inherit(ElggGroup, ElggEntity);
+	
+	
+	return ElggGroup;
+});
