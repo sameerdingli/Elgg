@@ -98,7 +98,7 @@ define('elgg/Uri', function(require) {
 				return true;
 			}
 			
-			url = elgg.parse_url(url);
+			url = Uri.parse(url);
 			if (url.scheme){
 				url.scheme = url.scheme.toLowerCase();
 			}
