@@ -12,7 +12,7 @@ var elgg = elgg || {};
 elgg.global = this;
 
 //TODO Requires jQuery!
-define('elgg', [], function() {
+define('elgg', function(require) {
 
 	/**
 	 * Merges two or more objects together and returns the result.
@@ -52,6 +52,10 @@ define('elgg', [], function() {
 	 */
 	elgg.isPlainObject = jQuery.isPlainObject;
 	
+	
+	/**
+	 * Using this function makes things easier to minify.
+	 */
 	elgg.typeOf = function(val) {
 		return typeof val;
 	};
@@ -178,16 +182,17 @@ define('elgg', [], function() {
 	 * @param {Object=} opt_context The object to export pkg into.
 	 */
 	elgg.provide = function(pkg, opt_context) {
-		var parts = pkg.split('.'),
-			context = opt_context || elgg.global,
-			part, i;
+		var parts = pkg.split('.');
+		var context = opt_context || elgg.global;
+		var part;
 	
-	
-		for (i = 0; i < parts.length; i += 1) {
+		for (var i = 0; i < parts.length; i += 1) {
 			part = parts[i];
 			context[part] = context[part] || {};
 			context = context[part];
 		}
+		
+		return context;
 	};
 	
 	
@@ -300,6 +305,10 @@ define('elgg', [], function() {
 	elgg.get_site_url = function() {
 		return elgg.config.wwwroot;
 	};
+	
+	
+	// Somewhere to store config stuff
+	elgg.config = {};
 	
 	
 	return elgg;
