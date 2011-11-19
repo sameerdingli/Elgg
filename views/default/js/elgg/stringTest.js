@@ -1,4 +1,4 @@
-define('elgg/stringTest', ['elgg/string'], function(string) {
+require(['elgg/string'], function(string) {
 	var Test = TestCase('elgg/stringTest');
 	
 	Test.prototype.testRtrim = function() {
@@ -12,6 +12,4 @@ define('elgg/stringTest', ['elgg/string'], function(string) {
 	Test.prototype.testTrim = function() {
 		assertEquals("t", string.trim(" t "));
 	};
-	
-	return Test;
 });
