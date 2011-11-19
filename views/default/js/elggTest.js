@@ -1,11 +1,8 @@
-define('elggTest', ['elgg'], function(elgg) {
-	/**
-	 * Test basic elgg library functions
-	 */
-	Test = TestCase("elggTest");
+require(['elgg'], function(elgg) {
+	var Test = TestCase("elggTest");
 
 	Test.prototype.testGlobalIsWindow = function() {
-		assertTrue(window === elgg.global);
+		assertSame(window, elgg.global);
 	};
 
 	Test.prototype.testProvideDoesntClobber = function() {
@@ -18,9 +15,6 @@ define('elggTest', ['elgg'], function(elgg) {
 		assertEquals("test", foo.bar.baz.oof);
 	};
 
-	/**
-	 * Try requiring bogus input
-	 */
 	Test.prototype.testRequireThrowsExceptionOnMissingRequirement = function () {
 		assertException(function(){ elgg.require(''); });
 		assertException(function(){ elgg.require('garbage'); });
@@ -70,6 +64,4 @@ define('elggTest', ['elgg'], function(elgg) {
 
 		assertEquals('bar', new Child().foo());
 	};
-	
-	return Test;
 });
