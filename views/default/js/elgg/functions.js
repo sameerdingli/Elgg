@@ -5,7 +5,7 @@
  * Most useful during testing, I suspect.
  */
 define('elgg/functions', ['elgg'], function(elgg) {
-	elgg.provide('elgg.functions');
+	var functions = elgg.provide('elgg.functions');
 	
 	
 	/**
@@ -13,7 +13,7 @@ define('elgg/functions', ['elgg'], function(elgg) {
 	 * @param val
 	 * @returns {Function}
 	 */
-	elgg.functions.constant = function(val) {
+	functions.constant = function(val) {
 		return function() {
 			return val;
 		};
@@ -25,7 +25,7 @@ define('elgg/functions', ['elgg'], function(elgg) {
 	 * @param msg
 	 * @returns {Function}
 	 */
-	elgg.functions.error = function(msg) {
+	functions.error = function(msg) {
 		return function() {
 			throw new Error(msg);
 		};
@@ -35,38 +35,38 @@ define('elgg/functions', ['elgg'], function(elgg) {
 	/**
 	 * Noop.
 	 */
-	elgg.functions.NULL = elgg.functions.constant(null);
+	functions.NULL = functions.constant(null);
 	
 	
 	/**
 	 * Always returns true.
 	 */
-	elgg.functions.TRUE = elgg.functions.constant(true);
+	functions.TRUE = functions.constant(true);
 	
 	
 	/**
 	 * Always returns false.
 	 */
-	elgg.functions.FALSE = elgg.functions.constant(false);
+	functions.FALSE = functions.constant(false);
 	
 	
 	/**
 	 * Always returns whatever you pass in.
 	 */
-	elgg.functions.IDENTITY = function(value) { return value; };
+	functions.IDENTITY = function(value) { return value; };
 	
 	
 	/**
 	 * Always throws an error (no message).
 	 */
-	elgg.functions.ERROR = elgg.functions.error();
+	functions.ERROR = functions.error();
 	
 	
 	/**
 	 * Use this for abstract methods that subclasses should implement.
 	 */
-	elgg.functions.ABSTRACT = elgg.functions.error("Unimplemented method");
+	functions.ABSTRACT = functions.error("Unimplemented method");
 	
 	
-	return elgg.functions;
+	return functions;
 });

@@ -1,6 +1,4 @@
-define('elgg/functionsTest', [
-    'elgg/functions'
-], function(functions) {
+require(['elgg/functions'], function(functions) {
 	var Test = TestCase('elgg/functionsTest');
 	
 	Test.prototype.testConstants = function() {
