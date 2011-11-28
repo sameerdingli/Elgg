@@ -1,7 +1,4 @@
-define('elgg/structs/PriorityListTest', [
-    'elgg/functions',
-    'elgg/structs/PriorityList'
-], function(functions, PriorityList) {
+require(['elgg/functions', 'elgg/structs/PriorityList'], function(functions, PriorityList) {
 	var Test = TestCase("elgg/structs/PriorityListTest");
 	
 	Test.prototype.setUp = function() {
