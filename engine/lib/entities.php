@@ -133,29 +133,13 @@ function retrieve_cached_entity_row($guid) {
  * @access private
  */
 function get_subtype_id($type, $subtype) {
-	global $CONFIG, $SUBTYPE_CACHE;
-
-	$type = sanitise_string($type);
-	$subtype = sanitise_string($subtype);
-
-	if ($subtype == "") {
-		return FALSE;
-	}
-
-	// @todo use the cache before hitting database
-	$result = get_data_row("SELECT * from {$CONFIG->dbprefix}entity_subtypes
-		where type='$type' and subtype='$subtype'");
+	$result = ElggSubtype::findByType($type, $subtype);
 
 	if ($result) {
-		if (!$SUBTYPE_CACHE) {
-			$SUBTYPE_CACHE = array();
-		}
-
-		$SUBTYPE_CACHE[$result->id] = $result;
 		return $result->id;
+	} else {
+		return FALSE;
 	}
-
-	return FALSE;
 }
 
 /**
@@ -165,33 +149,17 @@ function get_subtype_id($type, $subtype) {
  *
  * @return string Subtype name
  * @link http://docs.elgg.org/DataModel/Entities/Subtypes
- * @see get_subtype_from_id()
+ * @see get_subtype_id()
  * @access private
  */
 function get_subtype_from_id($subtype_id) {
-	global $CONFIG, $SUBTYPE_CACHE;
-
-	$subtype_id = (int)$subtype_id;
-
-	if (!$subtype_id) {
+	$result = ElggSubtype::findById($subtype_id);
+	
+	if ($result) {
+		return $result->subtype;
+	} else {
 		return false;
 	}
-
-	if (isset($SUBTYPE_CACHE[$subtype_id])) {
-		return $SUBTYPE_CACHE[$subtype_id]->subtype;
-	}
-
-	$result = get_data_row("SELECT * from {$CONFIG->dbprefix}entity_subtypes where id=$subtype_id");
-	if ($result) {
-		if (!$SUBTYPE_CACHE) {
-			$SUBTYPE_CACHE = array();
-		}
-
-		$SUBTYPE_CACHE[$subtype_id] = $result;
-		return $result->subtype;
-	}
-
-	return false;
 }
 
 /**
@@ -210,25 +178,13 @@ function get_subtype_from_id($subtype_id) {
  * @access private
  */
 function get_subtype_class($type, $subtype) {
-	global $CONFIG, $SUBTYPE_CACHE;
-
-	$type = sanitise_string($type);
-	$subtype = sanitise_string($subtype);
-
-	// @todo use the cache before going to the database
-	$result = get_data_row("SELECT * from {$CONFIG->dbprefix}entity_subtypes
-		where type='$type' and subtype='$subtype'");
-
+	$result = ElggSubtype::findByType($type, $subtype);
+	
 	if ($result) {
-		if (!$SUBTYPE_CACHE) {
-			$SUBTYPE_CACHE = array();
-		}
-
-		$SUBTYPE_CACHE[$result->id] = $result;
 		return $result->class;
+	} else {
+		return false;
 	}
-
-	return NULL;
 }
 
 /**
@@ -242,29 +198,13 @@ function get_subtype_class($type, $subtype) {
  * @access private
  */
 function get_subtype_class_from_id($subtype_id) {
-	global $CONFIG, $SUBTYPE_CACHE;
-
-	$subtype_id = (int)$subtype_id;
-
-	if (!$subtype_id) {
+	$result = ElggSubtype::findById($subtype_id);
+	
+	if ($result) {
+		return $result->class;
+	} else {
 		return false;
 	}
-
-	if (isset($SUBTYPE_CACHE[$subtype_id])) {
-		return $SUBTYPE_CACHE[$subtype_id]->class;
-	}
-
-	$result = get_data_row("SELECT * from {$CONFIG->dbprefix}entity_subtypes where id=$subtype_id");
-
-	if ($result) {
-		if (!$SUBTYPE_CACHE) {
-			$SUBTYPE_CACHE = array();
-		}
-		$SUBTYPE_CACHE[$subtype_id] = $result;
-		return $result->class;
-	}
-
-	return NULL;
 }
 
 /**
@@ -290,24 +230,12 @@ function get_subtype_class_from_id($subtype_id) {
  * @see get_entity()
  */
 function add_subtype($type, $subtype, $class = "") {
-	global $CONFIG;
-	$type = sanitise_string($type);
-	$subtype = sanitise_string($subtype);
-	$class = sanitise_string($class);
+	$obj = new ElggSubtype();
+	$obj->type = $type;
+	$obj->subtype = $subtype;
+	$obj->class = $class;
 
-	// Short circuit if no subtype is given
-	if ($subtype == "") {
-		return 0;
-	}
-
-	$id = get_subtype_id($type, $subtype);
-
-	if ($id == 0) {
-		return insert_data("insert into {$CONFIG->dbprefix}entity_subtypes"
-			. " (type, subtype, class) values ('$type','$subtype','$class')");
-	}
-
-	return $id;
+	return $this->save();
 }
 
 /**
@@ -321,13 +249,13 @@ function add_subtype($type, $subtype, $class = "") {
  * @see update_subtype()
  */
 function remove_subtype($type, $subtype) {
-	global $CONFIG;
-
-	$type = sanitise_string($type);
-	$subtype = sanitise_string($subtype);
-
-	return delete_data("DELETE FROM {$CONFIG->dbprefix}entity_subtypes"
-		. " WHERE type = '$type' AND subtype = '$subtype'");
+	$result = ElggSubtype::findByType($type, $subtype);
+	
+	if ($result) {
+		return $result->delete();
+	} else {
+		return false;
+	}
 }
 
 /**
@@ -340,18 +268,14 @@ function remove_subtype($type, $subtype) {
  * @return bool
  */
 function update_subtype($type, $subtype, $class = '') {
-	global $CONFIG;
-
-	if (!$id = get_subtype_id($type, $subtype)) {
+	$result = ElggSubtype::findByType($type, $subtype);
+	
+	if ($result) {
+		$result->class = $class;
+		return $result->save();
+	} else {
 		return FALSE;
 	}
-	$type = sanitise_string($type);
-	$subtype = sanitise_string($subtype);
-
-	return update_data("UPDATE {$CONFIG->dbprefix}entity_subtypes
-		SET type = '$type', subtype = '$subtype', class = '$class'
-		WHERE id = $id
-	");
 }
 
 /**
