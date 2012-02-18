@@ -25,6 +25,7 @@
  * @package    Elgg.Core
  * @subpackage DataModel.Entities
  * @link       http://docs.elgg.org/DataModel/ElggEntity
+ * @link       http://docs.elgg.org/DataModel/Entities
  * 
  * @property string $type           object, user, group, or site (read-only after save)
  * @property string $subtype        Further clarifies the nature of the entity (read-only after save)
@@ -928,14 +929,37 @@ abstract class ElggEntity extends ElggData implements
 	/**
 	 * Can a user add an entity to this container
 	 *
-	 * @param int    $user_guid The user.
-	 * @param string $type      The type of entity we're looking to write
-	 * @param string $subtype   The subtype of the entity we're looking to write
+	 * @param ElggUser $user    The user.
+	 * @param string   $type    The type of entity we're looking to write
+	 * @param string   $subtype The subtype of the entity we're looking to write
 	 *
 	 * @return bool
 	 */
-	public function canWriteToContainer($user_guid = 0, $type = 'all', $subtype = 'all') {
-		return can_write_to_container($user_guid, $this->guid, $type, $subtype);
+	public function canWriteToContainer($user = NULL, $type = 'all', $subtype = 'all') {
+		if (!$user instanceof ElggUser) {
+			// Assume for backwards compatibility that this was a GUID
+			$user = get_entity((int)$user);
+		}
+
+		if (!$user) {
+			$user = elgg_get_logged_in_user_entity();
+		}
+	
+		// See if anyone else has anything to say
+		$params = array(
+			'container' => $this,
+			'user' => $user,
+			'subtype' => $subtype
+		);
+		
+		// If the user can edit the container, they can also write to it
+		$return = $this->canEdit($user);
+
+		// If still not approved, see if the user is a member of the group
+		// TODO This stuff should be moved to the groups plugin/library!
+		$return = $return || ($user && $this instanceof ElggGroup && $this->isMember($user));
+
+		return elgg_trigger_plugin_hook('container_permissions_check', $type, $params, $return);
 	}
 
 	/**
@@ -1251,13 +1275,7 @@ abstract class ElggEntity extends ElggData implements
 		if ($guid > 0) {
 			cache_entity($this);
 
-			return update_entity(
-				$this->get('guid'),
-				$this->get('owner_guid'),
-				$this->get('access_id'),
-				$this->get('container_guid'),
-				$this->get('time_created')
-			);
+			return $this->update();
 		} else {
 			// Create a new entity (nb: using attribute array directly
 			// 'cos set function does something special!)
@@ -1308,6 +1326,69 @@ abstract class ElggEntity extends ElggData implements
 		}
 	}
 
+	/**
+	 * Update an entity in the database.
+	 *
+	 * There are 4 basic entity types: site, user, object, and group.
+	 * All entities are split between two tables: the entities table and their type table.
+	 *
+	 * @warning Plugin authors should never call this directly. Use ->save() instead.
+	 *
+	 * @param int $guid           The guid of the entity to update
+	 * @param int $owner_guid     The new owner guid
+	 * @param int $access_id      The new access id
+	 * @param int $container_guid The new container guid
+	 * @param int $time_created   The time creation timestamp
+	 *
+	 * @return bool
+	 */
+	protected function update() {
+		global $CONFIG, $ENTITY_CACHE;
+		
+		$guid = (int)$this->guid;
+		$owner_guid = (int)$this->owner_guid;
+		$access_id = (int)$this->access_id;
+		$container_guid = (int) $this->container_guid;
+
+		if (is_null($container_guid)) {
+			$container_guid = $owner_guid;
+		}
+		
+		$time = time();
+		$time_created = $entity->time_created;
+		
+		
+		if ($this->canEdit()) {
+			// TODO: update event should happen only on successful updates.
+			if (elgg_trigger_event('update', $entity->type, $entity)) {
+				$ret = update_data("UPDATE {$CONFIG->dbprefix}entities
+						set owner_guid='$owner_guid', access_id='$access_id',
+						container_guid='$container_guid', time_created='$time_created',
+						time_updated='$time' WHERE guid=$guid");
+		
+				if ($entity instanceof ElggObject) {
+					update_river_access_by_object($guid, $access_id);
+				}
+		
+				// If memcache is available then delete this entry from the cache
+				static $newentity_cache;
+				if ((!$newentity_cache) && (is_memcache_available())) {
+					$newentity_cache = new ElggMemcache('new_entity_cache');
+				}
+				if ($newentity_cache) {
+					$newentity_cache->delete($guid);
+				}
+		
+				// Handle cases where there was no error BUT no rows were updated!
+				if ($ret === false) {
+					return false;
+				}
+		
+				return true;
+			}
+		}
+	}
+	
 	/**
 	 * Loads attributes from the entities table into the object.
 	 *

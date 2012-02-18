@@ -278,73 +278,6 @@ function update_subtype($type, $subtype, $class = '') {
 	}
 }
 
-/**
- * Update an entity in the database.
- *
- * There are 4 basic entity types: site, user, object, and group.
- * All entities are split between two tables: the entities table and their type table.
- *
- * @warning Plugin authors should never call this directly. Use ->save() instead.
- *
- * @param int $guid           The guid of the entity to update
- * @param int $owner_guid     The new owner guid
- * @param int $access_id      The new access id
- * @param int $container_guid The new container guid
- * @param int $time_created   The time creation timestamp
- *
- * @return bool
- * @link http://docs.elgg.org/DataModel/Entities
- * @access private
- */
-function update_entity($guid, $owner_guid, $access_id, $container_guid = null, $time_created = null) {
-	global $CONFIG, $ENTITY_CACHE;
-
-	$guid = (int)$guid;
-	$owner_guid = (int)$owner_guid;
-	$access_id = (int)$access_id;
-	$container_guid = (int) $container_guid;
-	if (is_null($container_guid)) {
-		$container_guid = $owner_guid;
-	}
-	$time = time();
-
-	$entity = get_entity($guid);
-
-	if ($time_created == null) {
-		$time_created = $entity->time_created;
-	} else {
-		$time_created = (int) $time_created;
-	}
-
-	if ($entity && $entity->canEdit()) {
-		if (elgg_trigger_event('update', $entity->type, $entity)) {
-			$ret = update_data("UPDATE {$CONFIG->dbprefix}entities
-				set owner_guid='$owner_guid', access_id='$access_id',
-				container_guid='$container_guid', time_created='$time_created',
-				time_updated='$time' WHERE guid=$guid");
-
-			if ($entity instanceof ElggObject) {
-				update_river_access_by_object($guid, $access_id);
-			}
-
-			// If memcache is available then delete this entry from the cache
-			static $newentity_cache;
-			if ((!$newentity_cache) && (is_memcache_available())) {
-				$newentity_cache = new ElggMemcache('new_entity_cache');
-			}
-			if ($newentity_cache) {
-				$newentity_cache->delete($guid);
-			}
-
-			// Handle cases where there was no error BUT no rows were updated!
-			if ($ret === false) {
-				return false;
-			}
-
-			return true;
-		}
-	}
-}
 
 /**
  * Determine if a given user can write to an entity container.
@@ -364,50 +297,6 @@ function update_entity($guid, $owner_guid, $access_id, $container_guid = null, $
  * @link http://docs.elgg.org/DataModel/Containers
  */
 function can_write_to_container($user_guid = 0, $container_guid = 0, $type = 'all', $subtype = 'all') {
-	$user_guid = (int)$user_guid;
-	$user = get_entity($user_guid);
-	if (!$user) {
-		$user = elgg_get_logged_in_user_entity();
-	}
-
-	$container_guid = (int)$container_guid;
-	if (!$container_guid) {
-		$container_guid = elgg_get_page_owner_guid();
-	}
-
-	$return = false;
-
-	if (!$container_guid) {
-		$return = true;
-	}
-
-	$container = get_entity($container_guid);
-
-	if ($container) {
-		// If the user can edit the container, they can also write to it
-		if ($container->canEdit($user_guid)) {
-			$return = true;
-		}
-
-		// If still not approved, see if the user is a member of the group
-		// @todo this should be moved to the groups plugin/library
-		if (!$return && $user && $container instanceof ElggGroup) {
-			if ($container->isMember($user)) {
-				$return = true;
-			}
-		}
-	}
-
-	// See if anyone else has anything to say
-	return elgg_trigger_plugin_hook(
-			'container_permissions_check',
-			$type,
-			array(
-				'container' => $container,
-				'user' => $user,
-				'subtype' => $subtype
-			),
-			$return);
 }
 
 /**
