@@ -282,46 +282,8 @@ function check_rate_limit_exceeded($user_guid) {
  * @throws LoginException
  */
 function login(ElggUser $user, $persistent = false) {
-	global $CONFIG;
-
-	// User is banned, return false.
-	if ($user->isBanned()) {
-		throw new LoginException(elgg_echo('LoginException:BannedUser'));
-	}
-
-	$_SESSION['user'] = $user;
-	$_SESSION['guid'] = $user->getGUID();
-	$_SESSION['id'] = $_SESSION['guid'];
-	$_SESSION['username'] = $user->username;
-	$_SESSION['name'] = $user->name;
-
-	// if remember me checked, set cookie with token and store token on user
-	if (($persistent)) {
-		$code = (md5($user->name . $user->username . time() . rand()));
-		$_SESSION['code'] = $code;
-		$user->code = md5($code);
-		setcookie("elggperm", $code, (time() + (86400 * 30)), "/");
-	}
-
-	if (!$user->save() || !elgg_trigger_event('login', 'user', $user)) {
-		unset($_SESSION['username']);
-		unset($_SESSION['name']);
-		unset($_SESSION['code']);
-		unset($_SESSION['guid']);
-		unset($_SESSION['id']);
-		unset($_SESSION['user']);
-		setcookie("elggperm", "", (time() - (86400 * 30)), "/");
-		throw new LoginException(elgg_echo('LoginException:Unknown'));
-	}
-
-	// Users privilege has been elevated, so change the session id (prevents session fixation)
-	session_regenerate_id();
-
-	// Update statistics
-	set_last_login($_SESSION['guid']);
-	reset_login_failure_count($user->guid); // Reset any previous failed login attempts
-
-	return true;
+    global $SESSION;
+    return $SESSION->login($user, $persistent);
 }
 
 /**
@@ -330,35 +292,8 @@ function login(ElggUser $user, $persistent = false) {
  * @return bool
  */
 function logout() {
-	global $CONFIG;
-
-	if (isset($_SESSION['user'])) {
-		if (!elgg_trigger_event('logout', 'user', $_SESSION['user'])) {
-			return false;
-		}
-		$_SESSION['user']->code = "";
-		$_SESSION['user']->save();
-	}
-
-	unset($_SESSION['username']);
-	unset($_SESSION['name']);
-	unset($_SESSION['code']);
-	unset($_SESSION['guid']);
-	unset($_SESSION['id']);
-	unset($_SESSION['user']);
-
-	setcookie("elggperm", "", (time() - (86400 * 30)), "/");
-
-	// pass along any messages
-	$old_msg = $_SESSION['msg'];
-
-	session_destroy();
-
-	// starting a default session to store any post-logout messages.
-	_elgg_session_boot(NULL, NULL, NULL);
-	$_SESSION['msg'] = $old_msg;
-
-	return TRUE;
+    global $SESSION;
+    return $SESSION->logout();
 }
 
 /**
@@ -402,14 +337,7 @@ function _elgg_session_boot($event, $object_type, $object) {
 
 	// Initialise the magic session
 	$SESSION = new ElggSession();
-    if (!$SESSION->start()) {
-        return false;
-    }
-
-	// Since we have loaded a new user, this user may have different language preferences
-	register_translations(dirname(dirname(dirname(__FILE__))) . "/languages/");
-
-	return true;
+    return $SESSION->start();
 }
 
 /**
@@ -439,6 +367,7 @@ function admin_gatekeeper() {
 		forward('', 'admin');
 	}
 }
+
 
 /**
  * Handles opening a session in the DB
@@ -471,7 +400,7 @@ function _elgg_session_close() {
 }
 
 /**
- * Read the session data from DB failing back to file.
+ * Read the session data from DB falling back to file.
  *
  * @param string $id The session ID
  *
@@ -504,7 +433,7 @@ function _elgg_session_read($id) {
 }
 
 /**
- * Write session data to the DB falling back to file.
+ * Write session data to the DB, falling back to file.
  *
  * @param string $id        The session ID
  * @param mixed  $sess_data Session data

@@ -149,12 +149,38 @@ class ElggSession implements ArrayAccess {
 		return $this->offsetUnset($key);
 	}
     
+    /**
+     * Set a cookie value, but fire a plugin hook first so plugins can customize it.
+     */
+    function setCookie($name, $value = '', $expire = 0, $path = '/', $domain = '', $secure = false, $httponly = false) {
+        $params = array(
+            'name' => $name,
+            'value' => $value,
+            'expire' => $expire,
+            'path' => $path,
+            'domain' => $domain,
+            'secure' => $secure,
+            'httponly' => $httponly,
+        );
+        $params = elgg_trigger_hook('set:cookie', $name, $params, $params);
+        
+        // Letting handlers customize the name could make things complicated
+        setcookie($name, $params['value'], $params['expire'], $params['path'],
+                  $params['domain'], $params['secure'], $params['httponly']);
+    }
     
     /**
      * Fire up an Elgg session.
      *
-     * Plugins can hook into this and customize the session by listening for the
-     * 'start,session' event.
+     * Initialises the system session and potentially logs the user in
+     *
+     * This function looks for:
+     *
+     * 1. $_SESSION['id'] - if not present, we're logged out, and this is set to 0
+     * 2. The cookie 'elggperm' - if present, checks it for an authentication
+     * token, validates it, and potentially logs the user in
+     * 
+     * Plugins can listen for the 'start,session' event.
      *
      * @see session_start()
      * @return boolean True if started session successfully.
@@ -163,6 +189,7 @@ class ElggSession implements ArrayAccess {
     	session_name('Elgg');
         
         elgg_trigger_event('start', 'session', $this);
+        
     	session_start();
     
     	// Generate a simple token (private from potentially public session id)
@@ -218,6 +245,100 @@ class ElggSession implements ArrayAccess {
     		return false;
     	}
         
+        // Since we have loaded a new user, this user may have different language preferences
+    	register_translations(dirname(dirname(dirname(__FILE__))) . "/languages/");
+
         return true;
+    }
+    
+    /**
+     * Logs in a specified ElggUser. For standard registration, use in conjunction
+     * with elgg_authenticate.
+     *
+     * @see elgg_authenticate
+     *
+     * @param ElggUser $user       A valid Elgg user object
+     * @param boolean  $persistent Should this be a persistent login?
+     *
+     * @return true or throws exception
+     * @throws LoginException
+     */
+    function login(ElggUser $user, $persistent = false) {
+        global $CONFIG;
+
+    	// User is banned, return false.
+    	if ($user->isBanned()) {
+    		throw new LoginException(elgg_echo('LoginException:BannedUser'));
+    	}
+    
+    	$_SESSION['user'] = $user;
+    	$_SESSION['guid'] = $user->getGUID();
+    	$_SESSION['id'] = $_SESSION['guid'];
+    	$_SESSION['username'] = $user->username;
+    	$_SESSION['name'] = $user->name;
+    
+    	// if remember me checked, set cookie with token and store token on user
+    	if (($persistent)) {
+    		$code = (md5($user->name . $user->username . time() . rand()));
+    		$_SESSION['code'] = $code;
+    		$user->code = md5($code);
+            $this->setCookie('elggperm', $code, (time() + (86400 * 30)), "/");
+    	}
+    
+    	if (!$user->save() || !elgg_trigger_event('login', 'user', $user)) {
+    		unset($_SESSION['username']);
+    		unset($_SESSION['name']);
+    		unset($_SESSION['code']);
+    		unset($_SESSION['guid']);
+    		unset($_SESSION['id']);
+    		unset($_SESSION['user']);
+            // We're destroying the cookie, so don't want to fire a hook
+    		setcookie("elggperm", "", (time() - (86400 * 30)), "/");
+    		throw new LoginException(elgg_echo('LoginException:Unknown'));
+    	}
+    
+    	// Users privilege has been elevated, so change the session id (prevents session fixation)
+    	session_regenerate_id();
+    
+    	// Update statistics
+    	set_last_login($_SESSION['guid']);
+    	reset_login_failure_count($user->guid); // Reset any previous failed login attempts
+    
+    	return true;
+    }
+    
+    /**
+     * Log the current user out
+     *
+     * @return bool
+     */
+    function logout() {
+        if (isset($_SESSION['user'])) {
+    		if (!elgg_trigger_event('logout', 'user', $_SESSION['user'])) {
+    			return false;
+    		}
+    		$_SESSION['user']->code = "";
+    		$_SESSION['user']->save();
+    	}
+    
+    	unset($_SESSION['username']);
+    	unset($_SESSION['name']);
+    	unset($_SESSION['code']);
+    	unset($_SESSION['guid']);
+    	unset($_SESSION['id']);
+    	unset($_SESSION['user']);
+    
+    	setcookie("elggperm", "", (time() - (86400 * 30)), "/");
+    
+    	// pass along any messages
+    	$old_msg = $_SESSION['msg'];
+    
+    	session_destroy();
+    
+    	// starting a default session to store any post-logout messages.
+    	$this->start();
+    	$_SESSION['msg'] = $old_msg;
+    
+    	return TRUE;
     }
 }
