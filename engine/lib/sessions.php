@@ -380,10 +380,10 @@ function logout() {
  * @access private
  */
 function _elgg_session_boot($event, $object_type, $object) {
-	global $DB_PREFIX, $CONFIG;
+	global $DB_PREFIX, $CONFIG, $SESSION;
 
-	// Use database for sessions
-	// HACK to allow access to prefix after object destruction
+    // Use database for sessions
+    // HACK to allow access to prefix after object destruction
 	$DB_PREFIX = $CONFIG->dbprefix;
 	if ((!isset($CONFIG->use_file_sessions))) {
 		session_set_save_handler("_elgg_session_open",
@@ -393,57 +393,7 @@ function _elgg_session_boot($event, $object_type, $object) {
 			"_elgg_session_destroy",
 			"_elgg_session_gc");
 	}
-
-	session_name('Elgg');
-	session_start();
-
-	// Generate a simple token (private from potentially public session id)
-	if (!isset($_SESSION['__elgg_session'])) {
-		$_SESSION['__elgg_session'] = md5(microtime() . rand());
-	}
-
-	// test whether we have a user session
-	if (empty($_SESSION['guid'])) {
-
-		// clear session variables before checking cookie
-		unset($_SESSION['user']);
-		unset($_SESSION['id']);
-		unset($_SESSION['guid']);
-		unset($_SESSION['code']);
-
-		// is there a remember me cookie
-		if (isset($_COOKIE['elggperm'])) {
-			// we have a cookie, so try to log the user in
-			$code = $_COOKIE['elggperm'];
-			$code = md5($code);
-			if ($user = get_user_by_code($code)) {
-				// we have a user, log him in
-				$_SESSION['user'] = $user;
-				$_SESSION['id'] = $user->getGUID();
-				$_SESSION['guid'] = $_SESSION['id'];
-				$_SESSION['code'] = $_COOKIE['elggperm'];
-			}
-		}
-	} else {
-		// we have a session and we have already checked the fingerprint
-		// reload the user object from database in case it has changed during the session
-		if ($user = get_user($_SESSION['guid'])) {
-			$_SESSION['user'] = $user;
-			$_SESSION['id'] = $user->getGUID();
-			$_SESSION['guid'] = $_SESSION['id'];
-		} else {
-			// user must have been deleted with a session active
-			unset($_SESSION['user']);
-			unset($_SESSION['id']);
-			unset($_SESSION['guid']);
-			unset($_SESSION['code']);
-		}
-	}
-
-	if (isset($_SESSION['guid'])) {
-		set_last_action($_SESSION['guid']);
-	}
-
+    
 	elgg_register_action('login', '', 'public');
 	elgg_register_action('logout');
 
@@ -451,14 +401,10 @@ function _elgg_session_boot($event, $object_type, $object) {
 	register_pam_handler('pam_auth_userpass');
 
 	// Initialise the magic session
-	global $SESSION;
 	$SESSION = new ElggSession();
-
-	// Finally we ensure that a user who has been banned with an open session is kicked.
-	if ((isset($_SESSION['user'])) && ($_SESSION['user']->isBanned())) {
-		session_destroy();
-		return false;
-	}
+    if (!$SESSION->start()) {
+        return false;
+    }
 
 	// Since we have loaded a new user, this user may have different language preferences
 	register_translations(dirname(dirname(dirname(__FILE__))) . "/languages/");

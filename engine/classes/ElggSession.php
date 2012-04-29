@@ -148,4 +148,76 @@ class ElggSession implements ArrayAccess {
 	function del($key) {
 		return $this->offsetUnset($key);
 	}
+    
+    
+    /**
+     * Fire up an Elgg session.
+     *
+     * Plugins can hook into this and customize the session by listening for the
+     * 'start,session' event.
+     *
+     * @see session_start()
+     * @return boolean True if started session successfully.
+     */
+    function start() {
+    	session_name('Elgg');
+        
+        elgg_trigger_event('start', 'session', $this);
+    	session_start();
+    
+    	// Generate a simple token (private from potentially public session id)
+    	if (!isset($_SESSION['__elgg_session'])) {
+    		$_SESSION['__elgg_session'] = md5(microtime() . rand());
+    	}
+    
+    	// test whether we have a user session
+    	if (empty($_SESSION['guid'])) {
+    
+    		// clear session variables before checking cookie
+    		unset($_SESSION['user']);
+    		unset($_SESSION['id']);
+    		unset($_SESSION['guid']);
+    		unset($_SESSION['code']);
+    
+    		// is there a remember me cookie
+    		if (isset($_COOKIE['elggperm'])) {
+    			// we have a cookie, so try to log the user in
+    			$code = $_COOKIE['elggperm'];
+    			$code = md5($code);
+    			if ($user = get_user_by_code($code)) {
+    				// we have a user, log him in
+    				$_SESSION['user'] = $user;
+    				$_SESSION['id'] = $user->getGUID();
+    				$_SESSION['guid'] = $_SESSION['id'];
+    				$_SESSION['code'] = $_COOKIE['elggperm'];
+    			}
+    		}
+    	} else {
+    		// we have a session and we have already checked the fingerprint
+    		// reload the user object from database in case it has changed during the session
+    		if ($user = get_user($_SESSION['guid'])) {
+    			$_SESSION['user'] = $user;
+    			$_SESSION['id'] = $user->getGUID();
+    			$_SESSION['guid'] = $_SESSION['id'];
+    		} else {
+    			// user must have been deleted with a session active
+    			unset($_SESSION['user']);
+    			unset($_SESSION['id']);
+    			unset($_SESSION['guid']);
+    			unset($_SESSION['code']);
+    		}
+    	}
+    
+    	if (isset($_SESSION['guid'])) {
+    		set_last_action($_SESSION['guid']);
+    	}
+        
+        // Finally we ensure that a user who has been banned with an open session is kicked.
+    	if ((isset($_SESSION['user'])) && ($_SESSION['user']->isBanned())) {
+    		session_destroy();
+    		return false;
+    	}
+        
+        return true;
+    }
 }
