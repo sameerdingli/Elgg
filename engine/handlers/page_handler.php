@@ -46,7 +46,16 @@ require_once(dirname(dirname(__FILE__)) . "/start.php");
 
 $handler = get_input('handler');
 $page = get_input('page');
+$router = elgg_get_router();
 
-if (!page_handler($handler, $page)) {
+$routeInfo = $router->getRoute($new_url);
+if ($routeInfo) {
+	system_message(print_r($routeInfo, true));
+	foreach ($routeInfo['inputs'] as $name => $value) {
+		set_input($name, $value);
+	}
+	
+	require $routeInfo['location'];
+} elseif (!page_handler($handler, $page)) {
 	forward('', '404');
 }

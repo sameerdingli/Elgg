@@ -134,6 +134,53 @@ function elgg_error_page_handler($hook, $type, $result, $params) {
 }
 
 /**
+ * Gets the global router that keeps track of supported url enpoints.
+ *
+ * @return ElggRouter The router.
+ */
+function elgg_get_router() {
+	global $CONFIG;
+	if (!isset($CONFIG->router)) {
+		$CONFIG->router = new ElggRouter();	
+	}
+	
+	return $CONFIG->router;
+}
+
+/**
+ * Makes Elgg recognize a certain url pattern as routable to the given file.
+ * That is, when someone visits a url matching $route, Elgg calls the given
+ * $file with the inputs set appropriately (accessible via get_input).
+ *
+ * @example
+ * /mod/example/start.php
+ * <?php
+ *    function example_init() {
+ *        elgg_register_route('/hello/:name', '/mod/example/pages/helloworld.php');
+ *    }
+ *
+ *    elgg_register_event_handler('init', 'system', 'example_init');
+ *
+ * /mod/example/pages/helloworld.php
+ * <?php
+ *     $name = htmlspecialchars(get_input('name'));
+ *     echo "Hello, $name!";
+ *
+ * http://example.com/hello/Bob
+ * Hello, Bob!
+ * 
+ * @see get_input()
+ * @see elgg_unregister_route()
+ */
+function elgg_register_route($route, $file) {
+	elgg_get_router()->registerRoute($route, $file);	
+}
+
+function elgg_unregister_route($route) {
+	elgg_get_router()->unregisterRoute($route);	
+}
+
+/**
  * Initializes the page handler/routing system
  *
  * @return void

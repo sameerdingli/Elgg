@@ -13,9 +13,10 @@ function search_init() {
 	global $CONFIG;
 	require_once 'search_hooks.php';
 
-	// page handler for search actions and results
-	elgg_register_page_handler('search', 'search_page_handler');
-
+	$pages = elgg_get_plugins_path() . 'search/pages/search';
+	elgg_register_route('/search', "$pages/index.php");
+	elgg_register_route('/search/:q', "$pages/index.php");
+	
 	// register some default search hooks
 	elgg_register_plugin_hook_handler('search', 'object', 'search_objects_hook');
 	elgg_register_plugin_hook_handler('search', 'user', 'search_users_hook');
@@ -50,29 +51,6 @@ function search_init() {
 
 	// extend view for elgg topbar search box
 	elgg_extend_view('page/elements/header', 'search/header');
-}
-
-/**
- * Page handler for search
- *
- * @param array $page Page elements from core page handler
- * @return bool
- */
-function search_page_handler($page) {
-
-	// if there is no q set, we're being called from a legacy installation
-	// it expects a search by tags.
-	// actually it doesn't, but maybe it should.
-	// maintain backward compatibility
-	if(!get_input('q', get_input('tag', NULL))) {
-		set_input('q', $page[0]);
-		//set_input('search_type', 'tags');
-	}
-
-	$base_dir = elgg_get_plugins_path() . 'search/pages/search';
-
-	include_once("$base_dir/index.php");
-	return true;
 }
 
 /**
