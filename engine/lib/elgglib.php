@@ -93,6 +93,16 @@ function forward($location = "", $reason = 'system') {
 	}
 }
 
+
+function _elgg_get_js_manager() {
+	static $manager;
+	if (!isset($manager)) {
+		$manager = new ElggJavascriptManager();
+	}
+	return $manager;
+}
+
+
 /**
  * Register a JavaScript file for inclusion
  *
@@ -110,16 +120,28 @@ function forward($location = "", $reason = 'system') {
  * Google's CDN).
  *
  * @param string $name     An identifier for the JavaScript library
- * @param string $url      URL of the JavaScript file
+ * @param array  $options  Options configuring the javascript resource. For
+ *                         backwards compatibility, can also specify the URL of
+ *                         the JavaScript file as a string.
  * @param string $location Page location: head or footer. (default: head)
  * @param int    $priority Priority of the JS file (lower numbers load earlier)
  *
  * @return bool
  * @since 1.8.0
  */
-function elgg_register_js($name, $url, $location = 'head', $priority = null) {
-	return elgg_register_external_file('js', $name, $url, $location, $priority);
+function elgg_register_js($name, $options, $location = 'head', $priority = null) {
+	if (is_string($options)) {
+		$src = $options;
+		$options = array(
+			'src' => $src,	
+		);
+	}
+	$options['location'] = $location;
+	$options['priority'] = $priority;
+	
+	return _elgg_get_js_manager()->register($name, $options);
 }
+
 
 /**
  * Unregister a JavaScript file
@@ -130,7 +152,7 @@ function elgg_register_js($name, $url, $location = 'head', $priority = null) {
  * @since 1.8.0
  */
 function elgg_unregister_js($name) {
-	return elgg_unregister_external_file('js', $name);
+	return _elgg_get_js_manager()->unregister($name);
 }
 
 /**
@@ -145,7 +167,7 @@ function elgg_unregister_js($name) {
  * @since 1.8.0
  */
 function elgg_load_js($name) {
-	elgg_load_external_file('js', $name);
+	_elgg_get_js_manager()->load($name);
 }
 
 /**
@@ -157,7 +179,7 @@ function elgg_load_js($name) {
  * @since 1.8.0
  */
 function elgg_get_loaded_js($location = 'head') {
-	return elgg_get_loaded_external_files('js', $location);
+	return _elgg_get_js_manager()->getLoadedScripts($location);
 }
 
 /**
