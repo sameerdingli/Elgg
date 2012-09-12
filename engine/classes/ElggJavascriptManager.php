@@ -22,13 +22,15 @@ class ElggJavascriptManager {
 		
 		$defaults = array(
 			'name' => $name,
-			'src' => '',
+			'src' => elgg_get_simplecache_url('js', $name),
 			'aliases' => array(),
 			'deps' => array('jquery', 'jquery-ui', 'elgg'),
-			'exports' => '',
+			'exports' => false,
+			'location' => 'head',
 		);
 		
 		$item = (object)array_merge($defaults, $options);
+		$item->src = elgg_normalize_url($item->src);
 		
 		$this->map[$name] = $item;
 		
@@ -86,13 +88,28 @@ class ElggJavascriptManager {
 	/** 
 	 * @return string[] Script srcs to load in priority order.
 	 */
+	public function getLoadedSrcs($location = 'head') {
+		$items = $this->getLoadedScripts($location);
+		
+		// Default src to simplecache view based on name
+		$srcs = array();
+		foreach ($items as $item) {
+			$srcs[] = elgg_normalize_url($item->src);
+		}
+		
+		return $srcs;
+	}
+	
 	public function getLoadedScripts($location = 'head') {
 		$items = $this->list->getElements();
 
-		$callback = create_function('$v', "return \$v->loaded == true && \$v->location == '$location';");
+		$callback = create_function('$v', "return \$v->loaded && \$v->location == '$location';");
 		$items = array_filter($items, $callback);
-		array_walk($items, create_function('&$v,$k', '$v = $v->src;'));
-		
+
 		return $items;
+	}
+	
+	public function getRegisteredScripts() {
+		return $this->list->getElements();	
 	}
 }

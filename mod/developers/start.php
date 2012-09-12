@@ -20,13 +20,21 @@ function developers_init() {
 	elgg_register_action('developers/settings', "$action_base/settings.php", 'admin');
 	elgg_register_action('developers/inspect', "$action_base/inspect.php", 'admin');
 
-	elgg_register_js('jquery.jstree', 'mod/developers/vendors/jsTree/jquery.jstree.js', 'footer');
+	elgg_register_js('jquery.jstree', array(
+		'src' => 'mod/developers/vendors/jsTree/jquery.jstree.js',
+		'deps' => array('jquery'),
+		'exports' => 'jQuery.jstree',
+		'location' => 'async',
+	));
 	elgg_register_css('jquery.jstree', 'mod/developers/vendors/jsTree/themes/default/style.css');
 
-	elgg_load_js('jquery.form');
-
 	elgg_register_simplecache_view('js/elgg/dev');
-	elgg_register_js('elgg.dev', elgg_get_simplecache_url('js', 'elgg/dev'), 'footer');
+	elgg_register_js('elgg.dev', array(
+		'src' => elgg_get_simplecache_url('js', 'elgg/dev'),
+		'deps' => array('jquery', 'jquery.form', 'elgg', 'jquery.jstree'),
+		'exports' => 'elgg.dev',
+		'location' => 'async',
+	));
 	elgg_load_js('elgg.dev');
 }
 

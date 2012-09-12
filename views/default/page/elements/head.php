@@ -60,11 +60,28 @@ $release = get_version(true);
 		<link rel="stylesheet" type="text/css" href="<?php echo $ie6_url; ?>" />
 	<![endif]-->
 
+<?php
+
+$requirejs = elgg_trigger_plugin_hook('config', 'requirejs', null, array(
+	'paths' => array(),
+	'shim' => array(),
+	'config' => array(),
+	'map' => array(
+		'*' => array(),
+	),
+));
+
+?>
+<!--
+<?php print_r($requirejs); ?>
+-->
+<script>var require = <?php echo json_encode($requirejs); ?>;</script>
+
 <?php foreach ($js as $script) { ?>
-	<script type="text/javascript" src="<?php echo $script; ?>"></script>
+	<script src="<?php echo $script; ?>"></script>
 <?php } ?>
 
-<script type="text/javascript">
+<script>
 	<?php echo elgg_view('js/initialize_elgg'); ?>
 </script>
 

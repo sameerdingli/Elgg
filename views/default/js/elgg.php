@@ -1,8 +1,9 @@
 <?php
-/**
- * Core Elgg javascript loader
- */
+
 global $CONFIG;
+
+?>
+<?php
 
 $prereq_files = array(
 	"vendors/sprintf.js",
@@ -13,7 +14,6 @@ foreach ($prereq_files as $file) {
 	include("{$CONFIG->path}$file");
 }
 
-//No such thing as autoloading classes in javascript
 $model_files = array(
 	'ElggEntity',
 	'ElggUser',
@@ -47,24 +47,11 @@ foreach ($libs as $file) {
 	echo "\n";
 }
 
-/**
- * Set some values that are cacheable
- */
 ?>
 
-elgg.version = '<?php echo get_version(); ?>';
-elgg.release = '<?php echo get_version(true); ?>';
-elgg.config.wwwroot = '<?php echo elgg_get_site_url(); ?>';
-elgg.security.interval = 5 * 60 * 1000; <?php //@todo make this configurable ?>
-elgg.config.domReady = false;
-elgg.config.language = '<?php echo isset($CONFIG->language) ? $CONFIG->language : 'en'; ?>';
-elgg.config.languageReady = false;
 
-//After the DOM is ready
-$(function() {
-	elgg.config.domReady = true;
-	elgg.initWhenReady();
-});
+elgg.config.domReady = false;
+elgg.config.languageReady = false;
 
 <?php
 
@@ -73,3 +60,22 @@ if ($previous_content) {
 	elgg_deprecated_notice("The view 'js/initialise_elgg' has been deprecated for js/elgg", 1.8);
 	echo $previous_content;
 }
+
+?>
+
+define('elgg', ['jquery', 'module'], function($, module) {
+	$.extend(true, elgg, module.config());
+	
+	//After the DOM is ready
+	$(function() {
+		elgg.config.domReady = true;
+		elgg.initWhenReady();
+	});
+	
+	// DOM not necessarily ready, but elgg's js framework is fully initalized
+	elgg.trigger_hook('boot', 'system');
+	
+	return elgg;
+});
+// Force the factory function to run
+require(['elgg']);

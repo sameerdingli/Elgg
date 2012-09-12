@@ -20,7 +20,12 @@ function embed_init() {
 	// Page handler for the modal media embed
 	elgg_register_page_handler('embed', 'embed_page_handler');
 	
-	elgg_register_js('elgg.embed', 'js/embed/embed.js', 'footer');
+	elgg_register_js('elgg.embed', array(
+		'src' => 'js/embed/embed.js',
+		'exports' => 'elgg.embed',
+		'deps' => array('elgg', 'jquery', 'jquery.form', 'elgg.lightbox'),
+		'location' => 'footer',
+	));
 }
 
 /**

@@ -20,9 +20,13 @@ elgg_register_event_handler('init', 'system', 'thewire_init');
 function thewire_init() {
 
 	// register the wire's JavaScript
-	$thewire_js = elgg_get_simplecache_url('js', 'thewire');
 	elgg_register_simplecache_view('js/thewire');
-	elgg_register_js('elgg.thewire', $thewire_js, 'footer');
+	elgg_register_js('elgg.thewire', array(
+		'src' => elgg_get_simplecache_url('js', 'thewire'), 
+		'exports' => 'elgg.thewire',
+		'deps' => array('elgg', 'jquery'),
+		'location' => 'footer',
+	));
 
 	elgg_register_ajax_view('thewire/previous');
 

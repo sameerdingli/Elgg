@@ -134,10 +134,10 @@ function elgg_register_js($name, $options, $location = 'head', $priority = null)
 		$src = $options;
 		$options = array(
 			'src' => $src,	
+			'location' => $location,
+			'priorty' => $priority,
 		);
 	}
-	$options['location'] = $location;
-	$options['priority'] = $priority;
 	
 	return _elgg_get_js_manager()->register($name, $options);
 }
@@ -179,7 +179,15 @@ function elgg_load_js($name) {
  * @since 1.8.0
  */
 function elgg_get_loaded_js($location = 'head') {
+	return _elgg_get_js_manager()->getLoadedSrcs($location);
+}
+
+function elgg_get_loaded_scripts($location = 'head') {
 	return _elgg_get_js_manager()->getLoadedScripts($location);
+}
+
+function elgg_get_registered_js() {
+	return _elgg_get_js_manager()->getRegisteredScripts();	
 }
 
 /**
@@ -2052,7 +2060,11 @@ function elgg_walled_garden() {
 	elgg_register_simplecache_view('js/walled_garden');
 	elgg_register_simplecache_view('css/walled_garden');
 	elgg_register_css('elgg.walled_garden', elgg_get_simplecache_url('css', 'walled_garden'));
-	elgg_register_js('elgg.walled_garden', elgg_get_simplecache_url('js', 'walled_garden'));
+	elgg_register_js('elgg.walled_garden', array(
+		'src' => elgg_get_simplecache_url('js', 'walled_garden'),
+		'deps' => array('elgg', 'jquery', 'jquery-ui'),
+		'exports' => 'elgg.walled_garden',
+	));
 
 	elgg_register_page_handler('walled_garden', '_elgg_walled_garden_ajax_handler');
 
@@ -2132,14 +2144,41 @@ function elgg_init() {
 	elgg_register_page_handler('css', 'elgg_css_page_handler');
 	elgg_register_page_handler('ajax', 'elgg_ajax_page_handler');
 
-	elgg_register_js('elgg.autocomplete', 'js/lib/ui.autocomplete.js');
-	elgg_register_js('jquery.ui.autocomplete.html', 'vendors/jquery/jquery.ui.autocomplete.html.js');
-	elgg_register_js('elgg.userpicker', 'js/lib/ui.userpicker.js');
-	elgg_register_js('elgg.friendspicker', 'js/lib/ui.friends_picker.js');
-	elgg_register_js('jquery.easing', 'vendors/jquery/jquery.easing.1.3.packed.js');
-	elgg_register_js('elgg.avatar_cropper', 'js/lib/ui.avatar_cropper.js');
-	elgg_register_js('jquery.imgareaselect', 'vendors/jquery/jquery.imgareaselect-0.9.8/scripts/jquery.imgareaselect.min.js');
-	elgg_register_js('elgg.ui.river', 'js/lib/ui.river.js');
+	elgg_register_js('elgg.autocomplete', array(
+		'src' => 'js/lib/ui.autocomplete.js',
+		'exports' => 'elgg.autocomplete',
+	));
+	elgg_register_js('jquery.ui.autocomplete.html', array(
+		'src' => 'vendors/jquery/jquery.ui.autocomplete.html.js',
+		'deps' => array('jquery', 'jquery-ui'),
+	));
+	elgg_register_js('elgg.userpicker', array(
+		'src' => 'js/lib/ui.userpicker.js',
+		'exports' => 'elgg.userpicker',
+	));
+	elgg_register_js('elgg.friendspicker', array(
+		'src' => 'js/lib/ui.friends_picker.js',
+		'exports' => 'elgg.friendspicker',
+	));
+	elgg_register_js('jquery.easing', array(
+		'src' => 'vendors/jquery/jquery.easing.1.3.packed.js',
+		'deps' => array('jquery'),
+	));
+	elgg_register_js('elgg.avatar_cropper', array(
+		'src' => 'js/lib/ui.avatar_cropper.js',
+		'deps' => array('elgg', 'jquery'),
+		'exports' => 'elgg.avatarCropper',
+	));
+	elgg_register_js('jquery.imgareaselect', array(
+		'src' => 'vendors/jquery/jquery.imgareaselect-0.9.8/scripts/jquery.imgareaselect.min.js',
+		'deps' => array('jquery'),
+		'exports' => 'jQuery.fn.imgAreaSelect',
+	));
+	elgg_register_js('elgg.ui.river', array(
+		'src' => 'js/lib/ui.river.js',
+		'deps' => array('elgg', 'jquery'),
+		'exports' => 'elgg.ui.river',
+	));
 
 	elgg_register_css('jquery.imgareaselect', 'vendors/jquery/jquery.imgareaselect-0.9.8/css/imgareaselect-deprecated.css');
 	
@@ -2165,6 +2204,86 @@ function elgg_init() {
 			$CONFIG->wordblacklist[] = trim($l);
 		}
 	}
+	
+	elgg_register_plugin_hook_handler('config', 'requirejs', 'elgg_requirejs_config_handler');
+}
+
+function elgg_requirejs_config_handler($name, $type, $requirejs) {
+	// @todo json export should be smoother than this...  
+	// @todo Might also be nice to make url exportable. $entity->url? yes please!
+	$page_owner = elgg_get_page_owner_entity();
+	
+	if ($page_owner instanceof ElggEntity) {
+		$page_owner_json = array();
+		foreach ($page_owner->getExportableValues() as $v) {
+			$page_owner_json[$v] = $page_owner->$v;
+		}
+		
+		$page_owner_json['subtype'] = $page_owner->getSubtype();
+		$page_owner_json['url'] = $page_owner->getURL();
+	}
+	
+	
+	$user = elgg_get_logged_in_user_entity();
+	
+	if ($user instanceof ElggUser) {
+		$user_json = array();
+		foreach ($user->getExportableValues() as $v) {
+			$user_json[$v] = $user->$v;
+		}
+		
+		$user_json['subtype'] = $user->getSubtype();
+		$user_json['url'] = $user->getURL();
+		$user_json['admin'] = $user->isAdmin();
+	}
+	
+	$elgg = elgg_trigger_plugin_hook('config', 'elgg.js', null, array(
+		'config' => array(
+			'lastcache' => (int)elgg_get_config('lastcache'),
+			'viewtype' => elgg_get_viewtype(),
+			'simplecache_enabled' => (int)elgg_is_simplecache_enabled(),
+			'language' => isset($CONFIG->language) ? $CONFIG->language : 'en',
+			'wwwroot' => elgg_get_site_url(),
+		),
+		'page_owner' => $page_owner_json,
+		'security' => array(
+			'token' => array(
+				'__elgg_ts' => $ts = time(),
+				'__elgg_token' => generate_action_token($ts),
+			),
+			'interval' => 5 * 60 * 1000,
+		),
+		'session' => array(
+			'user' => $user_json,	
+		),
+		'version' => get_version(),
+		'release' => get_version(true),
+	));
+	
+	$requirejs['config']['elgg'] = $elgg;
+	
+	$lastcahe = elgg_get_config('lastcache');
+	$viewtype = elgg_get_viewtype();
+
+	$requirejs['baseUrl'] = elgg_normalize_url("/cache/js/$lastcache/$viewtype/");
+	
+	// Requirejs wants us to supply paths without trailing .js, so strip those off.
+	foreach (elgg_get_registered_js() as $script) {
+		$requirejs['paths'][$script->name] = substr(elgg_normalize_url($script->src), 0, -3); // Strip ".js"
+		
+		if (!empty($script->deps) || $script->exports) {
+			$requirejs['shim'][$script->name] = array(
+				'deps' => $script->deps,
+				'exports' => $script->exports,
+			);
+		}
+		
+		foreach ($script->aliases as $alias) {
+			$requirejs['map']['*'][$alias] = $script->name;	
+		}
+	}
+	
+	return $requirejs;
 }
 
 /**
