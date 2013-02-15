@@ -25,7 +25,10 @@ class ElggViewService {
 	
 	/** @var ElggLogger */
 	private $logger;
-
+	
+	/** @var ElggSite */
+	private $site;
+	
 
 	public function __construct(ElggPluginHookService $hooks, ElggLogger $logger, ElggSite $site) {
 		$this->hooks = $hooks;
@@ -47,10 +50,15 @@ class ElggViewService {
 	}
 	
 	/**
-	 * Walks a directory of viewtypes and registers all viewtypes and their views
-	 * for rendering.
+	 * Auto-registers viewtypes + views in the given location.
+	 *
+	 * @note Views in plugin/views/ are automatically registered for active plugins.
+	 * Plugin authors would only need to call this if optionally including
+	 * an entire views structure.
 	 * 
 	 * @param string $directory Path to a directory on this filesystem.
+	 * 
+	 * @private
 	 */
 	public function registerViews($directory) {
 		$dirs = scandir($directory);
@@ -95,15 +103,33 @@ class ElggViewService {
 		}
 	}
 	
+	
+	/**
+	 * Sets the full path of a single view for a particular viewtype.
+	 * 
+	 * @param string $viewtype The viewtype.
+	 * @param string $view     The view name.
+	 * @param string $path     The full path to the view file.
+	 */
 	private function registerView($viewtype, $view, $path) {
 		$this->views[$viewtype][$view] = $path;
 	}
 	
+	
+	/**
+	 * Get full path to the given view. Guaranteed to return the path to a valid
+	 * file. Otherwise, throws.
+	 * 
+	 * @param string $view     The view name.
+	 * @param string $viewtype The viewtype.
+	 * 
+	 * @return string The full path to this view for the given viewtype.
+	 */
 	public function getViewLocation($view, $viewtype) {
 		$path = realpath($this->views[$viewtype][$view]);
 		
-		if (!$path && $this->viewtypeFallsBack($viewtype)) {
-			$path = $this->views['default'][$view];
+		if (!$path && $viewtype != 'default' && $this->viewtypeFallsBack($viewtype)) {
+			$path = realpath($this->views['default'][$view]);
 		}
 		
 		if (!$path || !file_exists($path)) {
