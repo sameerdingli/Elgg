@@ -9,6 +9,7 @@ $engine = dirname(dirname(dirname(__FILE__)));
 global $CONFIG;
 $CONFIG = (object) array(
 	'dbprefix' => 'elgg_',
+	'boot_complete' => false,
 );
 
 // Set up class auto-loading

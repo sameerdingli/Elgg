@@ -40,6 +40,7 @@ class Elgg_ServiceProvider extends Elgg_DIContainer {
 		$this->setFactory('logger', array($this, 'getLogger'));
 		$this->setFactory('metadataCache', array($this, 'getMetadataCache'));
 		$this->setFactory('db', array($this, 'getDb'));
+		$this->setFactory('site', array($this, 'getSite'));
 	}
 
 	protected function getMetadataCache(Elgg_DIContainer $c) {
@@ -51,14 +52,18 @@ class Elgg_ServiceProvider extends Elgg_DIContainer {
 	}
 
 	protected function getLogger(Elgg_DIContainer $c) {
-		return new ElggLogger($c->get('hooks'));
+		return new ElggLogger($c->hooks);
 	}
 
 	protected function getViews(Elgg_DIContainer $c) {
-		return new ElggViewService();
+		return new ElggViewService($c->hooks, $c->logger, $c->site);
 	}
 
 	protected function getAutoP(Elgg_DIContainer $c) {
 		return new ElggAutoP();
+	}
+	
+	protected function getSite(Elgg_DIContainer $c) {
+		return elgg_get_site_entity();
 	}
 }
