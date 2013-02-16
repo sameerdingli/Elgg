@@ -411,17 +411,17 @@ function _elgg_load_cache() {
 	$CONFIG->system_cache_loaded = false;
 
 	$CONFIG->views = new stdClass();
-	$data = elgg_load_system_cache('view_locations');
-	if (!is_string($data)) {
-		return;
+
+	$serializedViews = elgg_load_system_cache('view_locations');
+	if (!is_string($serializedViews)) {
+		_elgg_services()->views->setViews(unserialize($serializedViews));
 	}
-	$CONFIG->views->locations = unserialize($data);
 	
-	$data = elgg_load_system_cache('view_types');
-	if (!is_string($data)) {
-		return;
+	
+	$serializedViewTypes = elgg_load_system_cache('view_types');
+	if (is_string($serializedViewTypes)) {
+		$CONFIG->view_types = unserialize($serializedViewTypes);
 	}
-	$CONFIG->view_types = unserialize($data);
 
 	$CONFIG->system_cache_loaded = true;
 }
@@ -449,7 +449,8 @@ function _elgg_cache_init() {
 
 	// cache system data if enabled and not loaded
 	if ($CONFIG->system_cache_enabled && !$CONFIG->system_cache_loaded) {
-		elgg_save_system_cache('view_locations', serialize($CONFIG->views->locations));
+		$views = _elgg_services()->views->getViews();
+		elgg_save_system_cache('view_locations', serialize($views));
 		elgg_save_system_cache('view_types', serialize($CONFIG->view_types));
 	}
 

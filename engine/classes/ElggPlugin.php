@@ -778,7 +778,6 @@ class ElggPlugin extends ElggObject {
 	/**
 	 * Registers the plugin's views
 	 *
-	 * @throws PluginException
 	 * @return true
 	 */
 	protected function registerViews() {
@@ -789,28 +788,8 @@ class ElggPlugin extends ElggObject {
 			return true;
 		}
 
-		// but if they do, they have to be readable
-		$handle = opendir($view_dir);
-		if (!$handle) {
-			$msg = elgg_echo('ElggPlugin:Exception:CannotRegisterViews',
-							array($this->getID(), $this->guid, $view_dir));
-			throw new PluginException($msg);
-		}
-
-		while (FALSE !== ($view_type = readdir($handle))) {
-			$view_type_dir = $view_dir . $view_type;
-
-			if ('.' !== substr($view_type, 0, 1) && is_dir($view_type_dir)) {
-				if (autoregister_views('', $view_type_dir, $view_dir, $view_type)) {
-					elgg_register_viewtype($view_type);
-				} else {
-					$msg = elgg_echo('ElggPlugin:Exception:CannotRegisterViews',
-									array($this->getID(), $view_type_dir));
-					throw new PluginException($msg);
-				}
-			}
-		}
-
+		_elgg_services()->views->registerViews($view_dir);
+		
 		return true;
 	}
 

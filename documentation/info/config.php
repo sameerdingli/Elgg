@@ -318,18 +318,6 @@ $CONFIG->views;
 $CONFIG->views->simplecache;
 
 /**
- * A list of views and the top level views directory to search for the view in.
- *
- * @note Views are stored as the key and the top level view location is stored as the value.
- * The current viewtype {@link $CONFIG->view} is used to determin which directory under the entry
- * in $CONFIG->views->location to search.  View names are automatically appened a '.php' extension.
- *
- * @global object $CONFIG->views->locations
- */
-$CONFIG->views->locations;
-
-
-/**
  * A list of valid view types as discovered.
  *
  * @global array $CONFIG->view_types

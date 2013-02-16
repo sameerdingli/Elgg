@@ -35,6 +35,10 @@ class ElggViewServiceTest extends PHPUnit_Framework_TestCase {
 		$this->assertFalse($this->views->viewExists('js/.secret.js'));
 	}
 	
+	public function testStoresDirectoryForViewLocation() {
+		$this->assertEquals($this->viewsDir, $this->views->getViewLocation('js/interpreted.js', 'default'));
+	}
+	
 	public function testDoesNotUsePhpToRenderStaticViews() {
 		$expected = file_get_contents("{$this->viewsDir}/default/js/static.js");
 		$this->assertEquals($expected, $this->views->renderView('js/static.js'));
@@ -42,5 +46,18 @@ class ElggViewServiceTest extends PHPUnit_Framework_TestCase {
 	
 	public function testUsesPhpToRenderNonStaticViews() {
 		$this->assertEquals("// PHP", $this->views->renderView('js/interpreted.js'));
+	}
+	
+	public function testViewtypesCanFallBack() {
+		$this->views->registerViewtypeFallback('mobile');
+		$this->assertTrue($this->views->doesViewtypeFallBack('mobile'));
+	}
+	
+	public function testViewsCanExistBasedOnViewtypeFallback() {
+		$this->views->registerViewtypeFallback('mobile');
+		
+		print_r($this->views->getViewLocation('js/static.js', 'mobile'));
+		
+		$this->assertTrue($this->views->viewExists('js/static.js', 'mobile'));
 	}
 }

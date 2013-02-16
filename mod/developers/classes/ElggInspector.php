@@ -54,20 +54,11 @@ class ElggInspector {
 	public function getViews() {
 		global $CONFIG;
 
-		$coreViews = $this->recurseFileTree($CONFIG->viewpath . "default/");
-
-		// remove base path and php extension
-		array_walk($coreViews, create_function('&$v,$k', 'global $CONFIG; $v = substr($v, strlen($CONFIG->viewpath . "default/"), -4);'));
-
-		// setup views array before adding extensions and plugin views
+		// setup views array before adding extensions
 		$views = array();
-		foreach ($coreViews as $view) {
-			$views[$view] = array($CONFIG->viewpath . "default/" . $view . ".php");
-		}
-
-		// add plugins and handle overrides
-		foreach ($CONFIG->views->locations['default'] as $view => $location) {
-			$views[$view] = array($location . $view . ".php");
+		$locations = _elgg_services()->views->getViews();
+		foreach ($locations['default'] as $view => $location) {
+			$views[$view] = array($location);
 		}
 
 		// now extensions
@@ -246,32 +237,4 @@ class ElggInspector {
 		
 		return $tree;
 	}
-
-	/**
-	 * Create array of all php files in directory and subdirectories
-	 *
-	 * @param $dir full path to directory to begin search
-	 * @return array of every php file in $dir or below in file tree
-	 */
-	protected function recurseFileTree($dir) {
-		$view_list = array();
-
-		$handle = opendir($dir);
-		while ($file = readdir($handle)) {
-			if ($file[0] == '.') {
-
-			} else if (is_dir($dir . $file)) {
-				$view_list = array_merge($view_list, $this->recurseFileTree($dir . $file. "/"));
-			} else {
-				$extension = strrchr(trim($file, "/"), '.');
-				if ($extension === ".php") {
-					$view_list[] = $dir . $file;
-				}
-			}
-		}
-		closedir($handle);
-
-		return $view_list;
-	}
-
 }

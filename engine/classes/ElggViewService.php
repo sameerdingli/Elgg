@@ -18,7 +18,12 @@ class ElggViewService {
 	protected $user_wrapper;
 	protected $user_wrapped;
 	
-	private $views = array();
+	/**
+	 * A structure holding the locations of all views.
+	 */
+	private $views = array(
+		'default' => array(),
+	);
 
 	/** @var ElggPluginHookService */
 	private $hooks;
@@ -50,6 +55,23 @@ class ElggViewService {
 	}
 	
 	/**
+	 * Exposing the internal structure mainly for caching.
+	 * 
+	 * @return array All recognized views.
+	 */
+	public function getViews() {
+		return $this->views;
+	}
+	
+	/**
+	 * Set the currently registered views explicitly. This is useful when
+	 * restoring from cache, for example.
+	 */
+	public function setViews(array $views) {
+		$this->views = $views;		
+	}
+	
+	/**
 	 * Auto-registers viewtypes + views in the given location.
 	 *
 	 * @note Views in plugin/views/ are automatically registered for active plugins.
@@ -65,7 +87,7 @@ class ElggViewService {
 		
 		foreach ($dirs as $viewtype) {
 			if (strpos($viewtype, '.') !== 0 && is_dir("$directory/$viewtype")) {
-				$this->registerViewtypeViews($viewtype, "$directory/$viewtype");
+				$this->registerViewtypeViews($viewtype, $directory);
 			}
 		}
 	}
@@ -82,7 +104,10 @@ class ElggViewService {
 			return;
 		}
 		
-		$files = scandir($base_dir);		
+		$views_dir = "$base_dir/$viewtype";
+		$views_dir = empty($base_view) ? $views_dir : "$views_dir/$base_view";
+		
+		$files = scandir($views_dir);
 		
 		foreach ($files as $file) {
 			if (strpos($file, '.') === 0) {
@@ -90,28 +115,28 @@ class ElggViewService {
 			}
 
 			// Get the full path to this view
-			$path = "$base_dir/$file";
+			$path = "$views_dir/$file";
 			
 			if (is_dir($path)) {
 				$new_base_view = empty($base_view) ? $file : "$base_view/$file";
-				$this->registerViewtypeViews($viewtype, $path, $new_base_view);
+				$this->registerViewtypeViews($viewtype, $base_dir, $new_base_view);
 			} else {
 				$basename = basename($file, '.php');
 				$full_view_name = empty($base_view) ? $basename : "$base_view/$basename";
-				$this->registerView($viewtype, $full_view_name, $path);
+				$this->setViewLocation($viewtype, $full_view_name, $base_dir);
 			}
 		}
 	}
 	
 	
 	/**
-	 * Sets the full path of a single view for a particular viewtype.
+	 * Sets the location of a single view for a particular viewtype.
 	 * 
 	 * @param string $viewtype The viewtype.
 	 * @param string $view     The view name.
-	 * @param string $path     The full path to the view file.
+	 * @param string $path     The path to the views directory containing the view.
 	 */
-	private function registerView($viewtype, $view, $path) {
+	public function setViewLocation($viewtype, $view, $path) {
 		$this->views[$viewtype][$view] = $path;
 	}
 	
@@ -126,17 +151,35 @@ class ElggViewService {
 	 * @return string The full path to this view for the given viewtype.
 	 */
 	public function getViewLocation($view, $viewtype) {
-		$path = realpath($this->views[$viewtype][$view]);
+		if (!isset($this->views[$viewtype])) {
+			$this->views[$viewtype] = array();
+		}
 		
-		if (!$path && $viewtype != 'default' && $this->viewtypeFallsBack($viewtype)) {
+		$path = '';
+		if (isset($this->views[$viewtype][$view])) {
+			$path = realpath($this->views[$viewtype][$view]);
+		}
+		
+		
+		if ((!$path || !is_dir($path)) && 
+				$this->doesViewtypeFallBack($viewtype) &&
+				isset($this->views['default'][$view])) {
 			$path = realpath($this->views['default'][$view]);
 		}
 		
-		if (!$path || !file_exists($path)) {
-			throw new Exception("View '$view' not found in '$viewtype' or 'default' viewtypes.");
+		if (!$path || !is_dir($path)) {
+			throw new Exception("View '$view' not found for '$viewtype'");
 		}
 		
 		return $path;
+	}
+	
+	public function registerViewtypeFallback($viewtype) {
+		$this->fallbacks[$viewtype] = true;
+	}
+	
+	public function doesViewtypeFallBack($viewtype) {
+		return isset($this->fallbacks[$viewtype]) && $this->fallbacks[$viewtype];
 	}
 
 	/**
@@ -247,19 +290,36 @@ class ElggViewService {
 		$content = '';
 		foreach ($viewlist as $priority => $view) {
 			try {
-				$view_file = $this->getViewLocation($view, $viewtype);
+				$view_dir = $this->getViewLocation($view, $viewtype);
+
+				// Give priority to the PHP version to minimize misses.
+				if (file_exists("$view_dir/$viewtype/$view.php")) {
+					ob_start();
+					include("$view_dir/$viewtype/$view.php");
+					$content .= ob_get_clean();
+				} elseif (file_exists("$view_dir/$viewtype/$view")) {
+					$content .= file_get_contents("$view_dir/$viewtype/$view");
+				}
+				
+				continue;
+			}  catch (Exception $e) {
+				$this->logger->log($e->getMessage(), 'NOTICE');
+			}
+
+			try {
+				$view_dir = $this->getViewLocation($view, 'default');
+
+				if (file_exists("$view_dir/default/$view")) {
+					$content .= file_get_contents("$view_dir/default/$view");
+				} elseif (file_exists("$view_dir/default/$view.php")) {
+					ob_start();
+					include("$view_dir/default/$view.php");
+					$content .= ob_get_clean();
+				}
 			}  catch (Exception $e) {
 				$this->logger->log($e->getMessage(), 'ERROR');
-				continue;
 			}
 			
-			if (basename($view_file) == basename($view_file, '.php')) {
-				$content .= file_get_contents($view_file);
-			} else {
-				ob_start();
-				include($view_file);
-				$content .= ob_get_clean();
-			}
 		}
 	
 		// Plugin hook
@@ -291,6 +351,7 @@ class ElggViewService {
 	
 		try {
 			$location = $this->getViewLocation($view, $viewtype);
+			
 			return true;
 		} catch (Exception $e) {}
 	

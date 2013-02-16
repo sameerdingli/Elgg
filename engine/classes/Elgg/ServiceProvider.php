@@ -56,7 +56,7 @@ class Elgg_ServiceProvider extends Elgg_DIContainer {
 	}
 
 	protected function getViews(Elgg_DIContainer $c) {
-		return new ElggViewService($c->hooks, $c->logger, $c->site);
+		$views = new ElggViewService($c->hooks, $c->logger, $c->site);
 	}
 
 	protected function getAutoP(Elgg_DIContainer $c) {
