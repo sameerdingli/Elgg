@@ -395,9 +395,6 @@ function elgg_view($view, $vars = array(), $bypass = false, $ignored = false, $v
  * Priority can be specified and affects the order in which extensions
  * are appended or prepended.
  *
- * @internal View extensions are stored in
- * $CONFIG->views->extensions[$view][$priority] = $view_extension
- *
  * @param string $view           The view to extend.
  * @param string $view_extension This view is added to $view
  * @param int    $priority       The priority, from 0 to 1000,

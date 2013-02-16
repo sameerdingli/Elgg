@@ -55,9 +55,6 @@ class ElggViewServiceTest extends PHPUnit_Framework_TestCase {
 	
 	public function testViewsCanExistBasedOnViewtypeFallback() {
 		$this->views->registerViewtypeFallback('mobile');
-		
-		print_r($this->views->getViewLocation('js/static.js', 'mobile'));
-		
 		$this->assertTrue($this->views->viewExists('js/static.js', 'mobile'));
 	}
 }

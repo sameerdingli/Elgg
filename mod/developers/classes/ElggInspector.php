@@ -52,8 +52,6 @@ class ElggInspector {
 	 * returns [view] => array(view location and extensions)
 	 */
 	public function getViews() {
-		global $CONFIG;
-
 		// setup views array before adding extensions
 		$views = array();
 		$locations = _elgg_services()->views->getViews();
@@ -62,7 +60,8 @@ class ElggInspector {
 		}
 
 		// now extensions
-		foreach ($CONFIG->views->extensions as $view => $extensions) {
+		$viewsExtensions = _elgg_services()->views->getExtensions();
+		foreach ($viewsExtensions as $view => $extensions) {
 			$view_list = array();
 			foreach ($extensions as $priority => $ext_view) {
 				if (isset($views[$ext_view])) {

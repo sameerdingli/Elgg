@@ -24,6 +24,10 @@ class ElggViewService {
 	private $views = array(
 		'default' => array(),
 	);
+	
+	private $fallbacks = array();
+	
+	private $extensions = array();
 
 	/** @var ElggPluginHookService */
 	private $hooks;
@@ -69,6 +73,10 @@ class ElggViewService {
 	 */
 	public function setViews(array $views) {
 		$this->views = $views;		
+	}
+	
+	public function getExtensions() {
+		return $this->extensions;
 	}
 	
 	/**
@@ -279,8 +287,8 @@ class ElggViewService {
 		}
 	
 		// Set up any extensions to the requested view
-		if (isset($CONFIG->views->extensions[$view])) {
-			$viewlist = $CONFIG->views->extensions[$view];
+		if (isset($this->extensions[$view])) {
+			$viewlist = $this->extensions[$view];
 		} else {
 			$viewlist = array(500 => $view);
 		}
@@ -357,8 +365,8 @@ class ElggViewService {
 	
 		// If we got here then check whether this exists as an extension
 		// We optionally recursively check whether the extended view exists also for the viewtype
-		if ($recurse && isset($CONFIG->views->extensions[$view])) {
-			foreach ($CONFIG->views->extensions[$view] as $view_extension) {
+		if ($recurse && isset($this->extensions[$view])) {
+			foreach ($this->extensions[$view] as $view_extension) {
 				// do not recursively check to stay away from infinite loops
 				if ($this->viewExists($view_extension, $viewtype, false)) {
 					return true;
@@ -374,26 +382,19 @@ class ElggViewService {
 	 * @since 1.9.0
 	 */
 	public function extendView($view, $view_extension, $priority = 501, $viewtype = '') {
-		global $CONFIG;
-
-		if (!isset($CONFIG->views)) {
-			$CONFIG->views = (object) array(
-				'extensions' => array(),
+		if (!isset($this->extensions[$view])) {
+			$this->extensions[$view] = array(
+				500 => (string) $view,
 			);
-			$CONFIG->views->extensions[$view][500] = (string) $view;
-		} else {
-			if (!isset($CONFIG->views->extensions[$view])) {
-				$CONFIG->views->extensions[$view][500] = (string) $view;
-			}
 		}
 
 		// raise priority until it doesn't match one already registered
-		while (isset($CONFIG->views->extensions[$view][$priority])) {
+		while (isset($this->extensions[$view][$priority])) {
 			$priority++;
 		}
 	
-		$CONFIG->views->extensions[$view][$priority] = (string) $view_extension;
-		ksort($CONFIG->views->extensions[$view]);
+		$this->extensions[$view][$priority] = (string) $view_extension;
+		ksort($this->extensions[$view]);
 
 	}
 	
@@ -402,26 +403,16 @@ class ElggViewService {
 	 * @since 1.9.0
 	 */
 	public function unextendView($view, $view_extension) {
-		global $CONFIG;
-	
-		if (!isset($CONFIG->views)) {
+		if (!isset($this->extensions[$view])) {
 			return FALSE;
 		}
 	
-		if (!isset($CONFIG->views->extensions)) {
-			return FALSE;
-		}
-	
-		if (!isset($CONFIG->views->extensions[$view])) {
-			return FALSE;
-		}
-	
-		$priority = array_search($view_extension, $CONFIG->views->extensions[$view]);
+		$priority = array_search($view_extension, $this->extensions[$view]);
 		if ($priority === FALSE) {
 			return FALSE;
 		}
 	
-		unset($CONFIG->views->extensions[$view][$priority]);
+		unset($this->extensions[$view][$priority]);
 	
 		return TRUE;
 	}
