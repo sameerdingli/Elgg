@@ -36,8 +36,11 @@ function pages_init() {
 	elgg_extend_view('css/elgg', 'pages/css');
 
 	// Register javascript needed for sidebar menu
-	$js_url = 'mod/pages/vendors/jquery-treeview/jquery.treeview.min.js';
-	elgg_register_js('jquery-treeview', $js_url);
+	elgg_register_js('jquery-treeview', array(
+		'src' => '/mod/pages/vendors/jquery-treeview/jquery.treeview.min.js',
+		'deps' => array('jquery'),
+		'location' => 'head',
+	));
 	$css_url = 'mod/pages/vendors/jquery-treeview/jquery.treeview.css';
 	elgg_register_css('jquery-treeview', $css_url);
 

@@ -247,9 +247,17 @@ function admin_init() {
 
 	elgg_register_simplecache_view('css/admin');
 	elgg_register_simplecache_view('js/admin');
-	$url = elgg_get_simplecache_url('js', 'admin');
-	elgg_register_js('elgg.admin', $url);
-	elgg_register_js('jquery.jeditable', 'vendors/jquery/jquery.jeditable.mini.js');
+	
+	elgg_register_js('elgg.admin', array(
+		'src' => elgg_get_simplecache_url('js', 'admin'),
+		'deps' => array('elgg', 'jquery', 'jquery.jeditable', 'jquery-ui'),
+		'location' => 'head',
+	));
+	elgg_register_js('jquery.jeditable', array(
+		'src' => 'vendors/jquery/jquery.jeditable.mini.js',
+		'deps' => array('jquery'),
+		'location' => 'head',
+	));
 
 	// administer
 	// dashboard

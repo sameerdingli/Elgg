@@ -117,6 +117,18 @@ function forward($location = "", $reason = 'system') {
  * @since 1.8.0
  */
 function elgg_register_js($name, $url, $location = 'head', $priority = null) {
+	$amdConfig = _elgg_services()->amdConfig;
+
+	if (is_array($url)) {
+		$config = $url;
+		$url = elgg_extract('src', $config);
+		$location = elgg_extract('location', $config, 'footer');
+		$priority = elgg_extract('priority', $config);
+		
+		_elgg_services()->amdConfig->setShim($name, $config);
+	}
+
+	_elgg_services()->amdConfig->setPath($name, elgg_normalize_url($url));
 	return elgg_register_external_file('js', $name, $url, $location, $priority);
 }
 
@@ -1951,10 +1963,13 @@ function _elgg_walled_garden_ajax_handler($page) {
 function elgg_walled_garden() {
 	global $CONFIG;
 
-	elgg_register_simplecache_view('js/walled_garden');
-	elgg_register_simplecache_view('css/walled_garden');
 	elgg_register_css('elgg.walled_garden', elgg_get_simplecache_url('css', 'walled_garden'));
-	elgg_register_js('elgg.walled_garden', elgg_get_simplecache_url('js', 'walled_garden'));
+
+	elgg_register_js('elgg.walled_garden', array(
+		'src' => elgg_get_simplecache_url('js', 'walled_garden'),
+		'deps' => array('jquery', 'elgg'),
+		'location' => 'head',
+	));
 
 	elgg_register_page_handler('walled_garden', '_elgg_walled_garden_ajax_handler');
 
@@ -2034,16 +2049,42 @@ function elgg_init() {
 	elgg_register_page_handler('css', 'elgg_css_page_handler');
 	elgg_register_page_handler('ajax', 'elgg_ajax_page_handler');
 
-	elgg_register_js('elgg.autocomplete', 'js/lib/ui.autocomplete.js');
-	elgg_register_js('jquery.ui.autocomplete.html', 'vendors/jquery/jquery.ui.autocomplete.html.js');
+	elgg_register_js('elgg.autocomplete', array(
+		'src' => '/js/lib/ui.autocomplete.js',
+		'deps' => array('elgg', 'jquery', 'jquery-ui'),
+		'location' => 'head',
+	));
+	elgg_register_js('jquery.ui.autocomplete.html', array(
+		'src' => '/vendors/jquery/jquery.ui.autocomplete.html.js',
+		'deps' => array('jquery', 'jquery-ui'),
+		'location' => 'head',
+	));
 
-	elgg_register_external_view('js/elgg/UserPicker.js', true);
-
-	elgg_register_js('elgg.friendspicker', 'js/lib/ui.friends_picker.js');
-	elgg_register_js('jquery.easing', 'vendors/jquery/jquery.easing.1.3.packed.js');
-	elgg_register_js('elgg.avatar_cropper', 'js/lib/ui.avatar_cropper.js');
-	elgg_register_js('jquery.imgareaselect', 'vendors/jquery/jquery.imgareaselect-0.9.8/scripts/jquery.imgareaselect.min.js');
-	elgg_register_js('elgg.ui.river', 'js/lib/ui.river.js');
+	elgg_register_js('elgg.friendspicker', array(
+		'src' => '/js/lib/ui.friends_picker.js',
+		'deps' => array('jquery'),
+		'location' => 'head',
+	));
+	elgg_register_js('jquery.easing', array(
+		'src' => '/vendors/jquery/jquery.easing.1.3.packed.js',
+		'deps' => array('jquery'),
+		'location' => 'head',
+	));
+	elgg_register_js('elgg.avatar_cropper', array(
+		'src' => '/js/lib/ui.avatar_cropper.js',
+		'deps' => array('elgg', 'jquery', 'jquery.imgareaselect'),
+		'location' => 'head',
+	));
+	elgg_register_js('jquery.imgareaselect', array(
+		'src' => '/vendors/jquery/jquery.imgareaselect-0.9.8/scripts/jquery.imgareaselect.min.js',
+		'deps' => array('jquery'),
+		'location' => 'head',
+	));
+	elgg_register_js('elgg.ui.river', array(
+		'src' => '/js/lib/ui.river.js',
+		'deps' => array('elgg', 'jquery'),
+		'location' => 'head',
+	));
 
 	elgg_register_css('jquery.imgareaselect', 'vendors/jquery/jquery.imgareaselect-0.9.8/css/imgareaselect-deprecated.css');
 	

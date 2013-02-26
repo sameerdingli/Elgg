@@ -16,10 +16,18 @@ function ckeditor_init() {
 	elgg_extend_view('css/wysiwyg', 'css/elements/reset', 100);
 	elgg_extend_view('css/wysiwyg', 'css/elements/typography', 100);
 
-	elgg_register_js('ckeditor', 'mod/ckeditor/vendors/ckeditor/ckeditor.js');
-	elgg_register_js('jquery-ckeditor', 'mod/ckeditor/vendors/ckeditor/adapters/jquery.js');
-	elgg_register_js('elgg.ckeditor', elgg_get_simplecache_url('js', 'ckeditor'));
-	elgg_register_simplecache_view('js/ckeditor');
+	elgg_register_js('ckeditor', array(
+		'src' => '/mod/ckeditor/vendors/ckeditor/ckeditor.js',
+		'exports' => 'CKEDITOR',
+	));
+	elgg_register_js('jquery-ckeditor', array(
+		'src' => '/mod/ckeditor/vendors/ckeditor/adapters/jquery.js',
+		'deps' => array('ckeditor', 'jquery'),
+	));
+	elgg_register_js('elgg.ckeditor', array(
+		'src' => elgg_get_simplecache_url('js', 'ckeditor'),
+		'deps' => array('elgg', 'ckeditor', 'jquery'),
+	));
 	
 	elgg_extend_view('input/longtext', 'ckeditor/init');
 	
