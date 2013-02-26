@@ -117,8 +117,6 @@ function forward($location = "", $reason = 'system') {
  * @since 1.8.0
  */
 function elgg_register_js($name, $url, $location = 'head', $priority = null) {
-	$amdConfig = _elgg_services()->amdConfig;
-
 	if (is_array($url)) {
 		$config = $url;
 		$url = elgg_extract('src', $config);
@@ -126,9 +124,9 @@ function elgg_register_js($name, $url, $location = 'head', $priority = null) {
 		$priority = elgg_extract('priority', $config);
 		
 		_elgg_services()->amdConfig->setShim($name, $config);
+		_elgg_services()->amdConfig->setPath($name, elgg_normalize_url($url));
 	}
 
-	_elgg_services()->amdConfig->setPath($name, elgg_normalize_url($url));
 	return elgg_register_external_file('js', $name, $url, $location, $priority);
 }
 
@@ -1965,11 +1963,7 @@ function elgg_walled_garden() {
 
 	elgg_register_css('elgg.walled_garden', elgg_get_simplecache_url('css', 'walled_garden'));
 
-	elgg_register_js('elgg.walled_garden', array(
-		'src' => elgg_get_simplecache_url('js', 'walled_garden'),
-		'deps' => array('jquery', 'elgg'),
-		'location' => 'head',
-	));
+	elgg_register_js('elgg.walled_garden', elgg_get_simplecache_url('js', 'walled_garden'));
 
 	elgg_register_page_handler('walled_garden', '_elgg_walled_garden_ajax_handler');
 
